@@ -1,0 +1,13 @@
+target/
+.git/
+logs/
+.env
+.env.breeze
+__pycache__/
+*.py
+*.sh
+*.log
+.playwright-mcp/
+docs/
+tasks/
+*.postman_collection.json

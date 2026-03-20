@@ -1,0 +1,927 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Trade Confirmation</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+        'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+        sans-serif;
+      background: #0f1117;
+      color: #c9d1d9;
+      padding: 20px;
+      min-height: 100vh;
+    }
+
+    .container {
+      max-width: 600px;
+      margin: 0 auto;
+    }
+
+    .card {
+      background: #1a1d29;
+      border: 1px solid #30363d;
+      border-radius: 8px;
+      padding: 24px;
+      margin-bottom: 20px;
+    }
+
+    h1 {
+      font-size: 24px;
+      margin-bottom: 20px;
+      color: #f0f6fc;
+    }
+
+    .form-group {
+      margin-bottom: 20px;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: 500;
+      color: #f0f6fc;
+    }
+
+    input[type="text"],
+    input[type="number"],
+    select {
+      width: 100%;
+      padding: 10px;
+      background: #0f1117;
+      border: 1px solid #30363d;
+      border-radius: 6px;
+      color: #c9d1d9;
+      font-size: 14px;
+    }
+
+    input[type="text"]:focus,
+    input[type="number"]:focus,
+    select:focus {
+      outline: none;
+      border-color: #58a6ff;
+      box-shadow: 0 0 0 3px rgba(88, 166, 255, 0.1);
+    }
+
+    .toggle-group {
+      display: flex;
+      gap: 10px;
+    }
+
+    .toggle-btn {
+      flex: 1;
+      padding: 10px;
+      border: 1px solid #30363d;
+      border-radius: 6px;
+      background: #0f1117;
+      color: #c9d1d9;
+      cursor: pointer;
+      font-weight: 500;
+      font-size: 14px;
+      transition: all 0.2s;
+    }
+
+    .toggle-btn:hover {
+      border-color: #58a6ff;
+    }
+
+    .toggle-btn.active {
+      color: #f0f6fc;
+      border-color: #58a6ff;
+    }
+
+    .toggle-btn.buy.active {
+      background: rgba(0, 212, 170, 0.1);
+      border-color: #00d4aa;
+      color: #00d4aa;
+    }
+
+    .toggle-btn.sell.active {
+      background: rgba(255, 71, 87, 0.1);
+      border-color: #ff4757;
+      color: #ff4757;
+    }
+
+    .two-col {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 15px;
+    }
+
+    .warning-banner {
+      background: #2d2200;
+      border: 1px solid #ffa502;
+      border-radius: 6px;
+      padding: 12px;
+      margin-bottom: 20px;
+      font-size: 13px;
+      color: #ffb534;
+    }
+
+    .checkbox-group {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+
+    input[type="checkbox"] {
+      width: 18px;
+      height: 18px;
+      cursor: pointer;
+    }
+
+    .checkbox-label {
+      cursor: pointer;
+      font-size: 14px;
+      color: #c9d1d9;
+    }
+
+    .preview-section {
+      background: #0f1117;
+      border: 1px solid #30363d;
+      border-radius: 6px;
+      padding: 16px;
+      margin-bottom: 20px;
+    }
+
+    .preview-loading {
+      text-align: center;
+      color: #8b949e;
+      font-size: 14px;
+      padding: 12px;
+    }
+
+    .preview-error {
+      background: rgba(255, 71, 87, 0.1);
+      border: 1px solid #ff4757;
+      color: #ff7875;
+      padding: 12px;
+      border-radius: 6px;
+      font-size: 13px;
+      margin-bottom: 20px;
+    }
+
+    .stock-info {
+      margin-bottom: 16px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid #30363d;
+    }
+
+    .stock-name {
+      font-size: 16px;
+      font-weight: 600;
+      color: #f0f6fc;
+    }
+
+    .stock-price {
+      font-size: 18px;
+      font-weight: 700;
+      color: #00d4aa;
+      margin-top: 4px;
+    }
+
+    .charges-table {
+      font-size: 13px;
+      width: 100%;
+      margin-bottom: 12px;
+    }
+
+    .charges-table tr {
+      border-bottom: 1px solid #30363d;
+    }
+
+    .charges-table td {
+      padding: 8px 0;
+    }
+
+    .charges-table td:first-child {
+      color: #8b949e;
+    }
+
+    .charges-table td:last-child {
+      text-align: right;
+      color: #c9d1d9;
+    }
+
+    .total-amount {
+      font-size: 18px;
+      font-weight: 700;
+      color: #00d4aa;
+      text-align: right;
+      padding-top: 12px;
+    }
+
+    .btn {
+      width: 100%;
+      padding: 12px;
+      border: none;
+      border-radius: 6px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .btn-confirm {
+      background: #00d4aa;
+      color: #0f1117;
+    }
+
+    .btn-confirm.buy {
+      background: #00d4aa;
+    }
+
+    .btn-confirm.sell {
+      background: #ff4757;
+    }
+
+    .btn-confirm:hover:not(:disabled) {
+      filter: brightness(1.1);
+    }
+
+    .btn-confirm:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .btn-secondary {
+      background: #238636;
+      color: #f0f6fc;
+      margin-top: 12px;
+    }
+
+    .btn-secondary:hover {
+      background: #2ea043;
+    }
+
+    .result-card {
+      border-radius: 8px;
+      padding: 20px;
+      text-align: center;
+    }
+
+    .result-success {
+      background: rgba(0, 212, 170, 0.1);
+      border: 1px solid #00d4aa;
+    }
+
+    .result-error {
+      background: rgba(255, 71, 87, 0.1);
+      border: 1px solid #ff4757;
+    }
+
+    .result-title {
+      font-size: 20px;
+      font-weight: 700;
+      margin-bottom: 12px;
+    }
+
+    .result-success .result-title {
+      color: #00d4aa;
+    }
+
+    .result-error .result-title {
+      color: #ff4757;
+    }
+
+    .result-details {
+      font-size: 13px;
+      color: #c9d1d9;
+      margin-bottom: 16px;
+      text-align: left;
+    }
+
+    .result-details div {
+      padding: 8px 0;
+      border-bottom: 1px solid #30363d;
+    }
+
+    .result-details div:last-child {
+      border-bottom: none;
+    }
+
+    .result-label {
+      color: #8b949e;
+      font-size: 12px;
+    }
+
+    .result-value {
+      color: #f0f6fc;
+      font-weight: 500;
+      margin-top: 2px;
+    }
+
+    .spinner {
+      display: inline-block;
+      width: 16px;
+      height: 16px;
+      border: 2px solid rgba(0, 212, 170, 0.3);
+      border-top-color: #00d4aa;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin-right: 8px;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .validation-messages {
+      background: rgba(255, 184, 51, 0.1);
+      border: 1px solid #ffb534;
+      border-radius: 6px;
+      padding: 12px;
+      margin-bottom: 20px;
+      font-size: 13px;
+      color: #ffb534;
+    }
+
+    .validation-messages ul {
+      margin-left: 20px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div id="formSection">
+      <div class="card">
+        <h1>Trade Confirmation</h1>
+
+        <form id="tradeForm">
+          <div class="form-group">
+            <label for="stockCode">Stock Code</label>
+            <input
+              type="text"
+              id="stockCode"
+              placeholder="e.g., TATPOW"
+              autocomplete="off"
+            >
+          </div>
+
+          <div class="form-group">
+            <label>Action</label>
+            <div class="toggle-group">
+              <button type="button" class="toggle-btn buy active" data-action="buy">
+                BUY
+              </button>
+              <button type="button" class="toggle-btn sell" data-action="sell">
+                SELL
+              </button>
+            </div>
+          </div>
+
+          <div class="two-col">
+            <div class="form-group">
+              <label for="quantity">Quantity</label>
+              <input
+                type="number"
+                id="quantity"
+                min="1"
+                value="1"
+                autocomplete="off"
+              >
+            </div>
+
+            <div class="form-group">
+              <label>Order Type</label>
+              <div class="toggle-group">
+                <button type="button" class="toggle-btn active" data-order-type="market">
+                  MARKET
+                </button>
+                <button type="button" class="toggle-btn" data-order-type="limit">
+                  LIMIT
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div id="limitPriceGroup" class="form-group" style="display: none;">
+            <label for="limitPrice">Limit Price (₹)</label>
+            <input
+              type="number"
+              id="limitPrice"
+              min="0"
+              step="0.05"
+              placeholder="0.00"
+              autocomplete="off"
+            >
+          </div>
+
+          <div class="form-group">
+            <label for="exchange">Exchange</label>
+            <select id="exchange">
+              <option value="NSE">NSE</option>
+              <option value="BSE">BSE</option>
+            </select>
+          </div>
+        </form>
+      </div>
+
+      <div id="previewContainer"></div>
+
+      <div class="card">
+        <div class="warning-banner">
+          ⚠️ This will place a REAL order with REAL money
+        </div>
+
+        <div id="validationContainer"></div>
+
+        <div class="checkbox-group">
+          <input type="checkbox" id="confirmCheckbox">
+          <label for="confirmCheckbox" class="checkbox-label">
+            I understand this places a real order
+          </label>
+        </div>
+
+        <button
+          type="button"
+          id="confirmBtn"
+          class="btn btn-confirm buy"
+          disabled
+        >
+          Confirm & Execute
+        </button>
+      </div>
+    </div>
+
+    <div id="resultSection" style="display: none;"></div>
+  </div>
+
+  <script type="module">
+    import { App } from 'https://cdn.jsdelivr.net/npm/@modelcontextprotocol/ext-apps/+esm';
+
+    const app = new App({
+      name: 'trade-confirmation',
+      version: '1.0.0'
+    });
+
+    let lastToolCallName = null;
+
+    const state = {
+      action: 'buy',
+      orderType: 'market',
+      previewLoaded: false,
+      previewError: false,
+      executing: false,
+      previewData: null,
+    };
+
+    const elements = {
+      form: document.getElementById('tradeForm'),
+      stockCode: document.getElementById('stockCode'),
+      quantity: document.getElementById('quantity'),
+      limitPrice: document.getElementById('limitPrice'),
+      limitPriceGroup: document.getElementById('limitPriceGroup'),
+      exchange: document.getElementById('exchange'),
+      confirmCheckbox: document.getElementById('confirmCheckbox'),
+      confirmBtn: document.getElementById('confirmBtn'),
+      previewContainer: document.getElementById('previewContainer'),
+      validationContainer: document.getElementById('validationContainer'),
+      formSection: document.getElementById('formSection'),
+      resultSection: document.getElementById('resultSection'),
+    };
+
+    let previewTimeout;
+
+    function extractToolPayload(result) {
+      if (result?.structuredContent) {
+        return result.structuredContent;
+      }
+
+      const textEntry = result?.content?.find((item) => typeof item?.text === 'string');
+      if (!textEntry) {
+        return null;
+      }
+
+      return JSON.parse(textEntry.text);
+    }
+
+    function setAction(action) {
+      state.action = action;
+      document.querySelectorAll('.toggle-btn.buy, .toggle-btn.sell').forEach(btn => {
+        btn.classList.remove('active');
+      });
+      document.querySelector(`[data-action="${action}"]`).classList.add('active');
+      elements.confirmBtn.classList.remove('buy', 'sell');
+      elements.confirmBtn.classList.add(action);
+      triggerPreview();
+    }
+
+    function setOrderType(orderType) {
+      state.orderType = orderType;
+      document.querySelectorAll('[data-order-type]').forEach(btn => {
+        btn.classList.remove('active');
+      });
+      document.querySelector(`[data-order-type="${orderType}"]`).classList.add('active');
+      elements.limitPriceGroup.style.display = orderType === 'limit' ? 'block' : 'none';
+      triggerPreview();
+    }
+
+    function validateForm() {
+      const errors = [];
+      const stockCode = elements.stockCode.value.trim();
+      const quantity = parseInt(elements.quantity.value);
+
+      if (!stockCode) {
+        errors.push('Stock code is required');
+      }
+
+      if (!quantity || quantity <= 0) {
+        errors.push('Quantity must be greater than 0');
+      }
+
+      if (state.orderType === 'limit') {
+        const limitPrice = parseFloat(elements.limitPrice.value);
+        if (!limitPrice || limitPrice <= 0) {
+          errors.push('Limit price must be greater than 0');
+        }
+      }
+
+      return errors;
+    }
+
+    function renderValidationMessages(errors) {
+      if (errors.length === 0) {
+        elements.validationContainer.innerHTML = '';
+        return;
+      }
+
+      elements.validationContainer.innerHTML = `
+        <div class="validation-messages">
+          <ul>
+            ${errors.map(e => `<li>${e}</li>`).join('')}
+          </ul>
+        </div>
+      `;
+    }
+
+    function updateConfirmButton() {
+      const errors = validateForm();
+      const canConfirm = state.previewLoaded &&
+        !state.previewError &&
+        elements.confirmCheckbox.checked &&
+        errors.length === 0 &&
+        !state.executing;
+
+      elements.confirmBtn.disabled = !canConfirm;
+    }
+
+    function triggerPreview() {
+      clearTimeout(previewTimeout);
+
+      const errors = validateForm();
+      renderValidationMessages(errors);
+
+      if (errors.length > 0) {
+        state.previewLoaded = false;
+        state.previewError = true;
+        elements.previewContainer.innerHTML = '';
+        updateConfirmButton();
+        return;
+      }
+
+      state.previewLoaded = false;
+      state.previewError = false;
+      updateConfirmButton();
+
+      previewTimeout = setTimeout(() => {
+        const stockCode = elements.stockCode.value.trim();
+        const quantity = parseInt(elements.quantity.value);
+
+        if (!stockCode || quantity <= 0) return;
+
+        renderPreviewLoading();
+
+        const args = {
+          stockCode,
+          action: state.action,
+          quantity,
+          orderType: state.orderType,
+          exchange: elements.exchange.value,
+        };
+
+        if (state.orderType === 'limit') {
+          args.price = parseFloat(elements.limitPrice.value);
+        }
+
+        lastToolCallName = 'order_preview';
+        app.callServerTool({
+          name: 'order_preview',
+          arguments: args,
+        }).then((result) => {
+          const content = extractToolPayload(result);
+          if (content) {
+            renderPreview(content);
+          } else {
+            state.previewLoaded = false;
+            state.previewError = true;
+            elements.previewContainer.innerHTML = `
+              <div class="preview-error">
+                Tool returned no preview payload.
+              </div>
+            `;
+            updateConfirmButton();
+          }
+          lastToolCallName = null;
+        }).catch((error) => {
+          state.previewLoaded = false;
+          state.previewError = true;
+          lastToolCallName = null;
+          elements.previewContainer.innerHTML = `
+            <div class="preview-error">
+              ${error.message || 'Failed to load preview'}
+            </div>
+          `;
+          updateConfirmButton();
+        });
+      }, 500);
+    }
+
+    function renderPreviewLoading() {
+      elements.previewContainer.innerHTML = `
+        <div class="preview-section">
+          <div class="preview-loading">Loading preview...</div>
+        </div>
+      `;
+    }
+
+    function renderPreview(data) {
+      state.previewLoaded = true;
+      state.previewData = data;
+
+      if (data.validation_messages && data.validation_messages.length > 0) {
+        state.previewError = true;
+        const messages = data.validation_messages.join(', ');
+        elements.previewContainer.innerHTML = `
+          <div class="preview-error">
+            ${messages}
+          </div>
+        `;
+        updateConfirmButton();
+        return;
+      }
+
+      state.previewError = false;
+
+      const breakdown = data.cost_breakdown;
+      const order = data.order;
+
+      const html = `
+        <div class="preview-section">
+          <div class="stock-info">
+            <div class="stock-name">${order.stock_name}</div>
+            <div class="stock-price">₹ ${order.estimated_price.toFixed(2)}</div>
+          </div>
+
+          <table class="charges-table">
+            <tr>
+              <td>Gross Value</td>
+              <td>₹ ${breakdown.gross_value.toFixed(2)}</td>
+            </tr>
+            <tr>
+              <td>Brokerage</td>
+              <td>₹ ${breakdown.brokerage.toFixed(2)}</td>
+            </tr>
+            <tr>
+              <td>STT</td>
+              <td>₹ ${breakdown.stt.toFixed(2)}</td>
+            </tr>
+            <tr>
+              <td>Exchange Charges</td>
+              <td>₹ ${breakdown.exchange_charges.toFixed(2)}</td>
+            </tr>
+            <tr>
+              <td>GST</td>
+              <td>₹ ${breakdown.gst.toFixed(2)}</td>
+            </tr>
+            <tr>
+              <td>SEBI Charges</td>
+              <td>₹ ${breakdown.sebi_charges.toFixed(2)}</td>
+            </tr>
+            <tr>
+              <td>Stamp Duty</td>
+              <td>₹ ${breakdown.stamp_duty.toFixed(2)}</td>
+            </tr>
+            <tr>
+              <td style="color: #f0f6fc; font-weight: 600;">Total Charges</td>
+              <td style="color: #f0f6fc; font-weight: 600;">₹ ${breakdown.total_charges.toFixed(2)}</td>
+            </tr>
+          </table>
+
+          <div class="total-amount">
+            Total: ₹ ${breakdown.net_amount.toFixed(2)}
+          </div>
+        </div>
+      `;
+
+      elements.previewContainer.innerHTML = html;
+      updateConfirmButton();
+      notifyResize();
+    }
+
+    function renderResult(isSuccess, data) {
+      const title = isSuccess ? 'Order Executed Successfully' : 'Order Failed';
+      const statusClass = isSuccess ? 'result-success' : 'result-error';
+
+      let detailsHtml = '';
+      if (isSuccess) {
+        detailsHtml = `
+          <div class="result-details">
+            <div>
+              <div class="result-label">Order ID</div>
+              <div class="result-value">${data.order_id}</div>
+            </div>
+            <div>
+              <div class="result-label">Stock</div>
+              <div class="result-value">${data.stock_code}</div>
+            </div>
+            <div>
+              <div class="result-label">Action</div>
+              <div class="result-value">${data.action.toUpperCase()}</div>
+            </div>
+            <div>
+              <div class="result-label">Quantity</div>
+              <div class="result-value">${data.quantity}</div>
+            </div>
+            <div>
+              <div class="result-label">Price</div>
+              <div class="result-value">₹ ${data.price.toFixed(2)}</div>
+            </div>
+            <div>
+              <div class="result-label">Broker</div>
+              <div class="result-value">${data.broker}</div>
+            </div>
+          </div>
+        `;
+      } else {
+        detailsHtml = `
+          <div class="result-details">
+            <div>
+              <div class="result-label">Error</div>
+              <div class="result-value">${data.message || 'Unknown error'}</div>
+            </div>
+          </div>
+        `;
+      }
+
+      elements.resultSection.innerHTML = `
+        <div class="card result-card ${statusClass}">
+          <div class="result-title">${title}</div>
+          ${detailsHtml}
+          <button type="button" class="btn btn-secondary" id="resetBtn">
+            Place Another Order
+          </button>
+        </div>
+      `;
+
+      document.getElementById('resetBtn').addEventListener('click', resetForm);
+
+      elements.formSection.style.display = 'none';
+      elements.resultSection.style.display = 'block';
+      notifyResize();
+    }
+
+    function resetForm() {
+      elements.stockCode.value = '';
+      elements.quantity.value = '1';
+      elements.limitPrice.value = '';
+      elements.exchange.value = 'NSE';
+      elements.confirmCheckbox.checked = false;
+      state.previewLoaded = false;
+      state.previewError = false;
+      state.executing = false;
+      elements.previewContainer.innerHTML = '';
+      elements.validationContainer.innerHTML = '';
+      elements.resultSection.innerHTML = '';
+      elements.resultSection.style.display = 'none';
+      elements.formSection.style.display = 'block';
+      updateConfirmButton();
+      notifyResize();
+    }
+
+    function notifyResize() {
+      app.sendSizeChanged({
+        height: document.body.scrollHeight,
+      });
+    }
+
+    function executeTrade() {
+      if (state.executing) return;
+
+      state.executing = true;
+      elements.confirmBtn.innerHTML = '<span class="spinner"></span>Executing...';
+      elements.confirmBtn.disabled = true;
+
+      const args = {
+        stockCode: elements.stockCode.value.trim(),
+        action: state.action,
+        quantity: parseInt(elements.quantity.value),
+        orderType: state.orderType,
+        exchange: elements.exchange.value,
+        confirmed: true,
+      };
+
+      if (state.orderType === 'limit') {
+        args.price = parseFloat(elements.limitPrice.value);
+      }
+
+      lastToolCallName = 'execute_trade';
+      app.callServerTool({
+        name: 'execute_trade',
+        arguments: args,
+      }).then((result) => {
+        state.executing = false;
+        const content = extractToolPayload(result);
+        if (content) {
+          const isSuccess = content.status === 'EXECUTED';
+          renderResult(isSuccess, content);
+        } else {
+          renderResult(false, { message: 'Tool returned no execution payload' });
+        }
+        lastToolCallName = null;
+      }).catch((error) => {
+        state.executing = false;
+        lastToolCallName = null;
+        renderResult(false, { message: error.message || 'Order execution failed' });
+      });
+    }
+
+    app.ontoolinput = (input) => {
+      const args = input?.arguments || {};
+      if (args.stockCode) {
+        elements.stockCode.value = args.stockCode;
+      }
+      if (args.quantity) {
+        elements.quantity.value = String(args.quantity);
+      }
+      if (args.exchange) {
+        elements.exchange.value = args.exchange;
+      }
+      if (args.orderType) {
+        setOrderType(args.orderType);
+      }
+      if (args.price != null) {
+        elements.limitPrice.value = String(args.price);
+      }
+      if (args.action) {
+        setAction(args.action);
+      }
+    };
+
+    app.ontoolresult = (result) => {
+      try {
+        const content = extractToolPayload(result);
+        if (!content) {
+          return;
+        }
+        if (lastToolCallName === 'order_preview') {
+          renderPreview(content);
+        } else if (lastToolCallName === 'execute_trade') {
+          state.executing = false;
+          renderResult(content.status === 'EXECUTED', content);
+        }
+      } catch (error) {
+        console.error('Failed to parse tool result:', error);
+      } finally {
+        lastToolCallName = null;
+      }
+    };
+
+    elements.stockCode.addEventListener('input', triggerPreview);
+    elements.quantity.addEventListener('change', triggerPreview);
+    elements.limitPrice.addEventListener('change', triggerPreview);
+    elements.exchange.addEventListener('change', triggerPreview);
+    elements.confirmCheckbox.addEventListener('change', updateConfirmButton);
+    elements.confirmBtn.addEventListener('click', executeTrade);
+
+    document.querySelectorAll('[data-action]').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        setAction(btn.dataset.action);
+      });
+    });
+
+    document.querySelectorAll('[data-order-type]').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        setOrderType(btn.dataset.orderType);
+      });
+    });
+
+    updateConfirmButton();
+    notifyResize();
+    app.connect().catch((error) => {
+      console.error('Failed to connect MCP app:', error);
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,451 @@
+[
+  {
+    "code": "NIFTY",
+    "name": "Nifty 50",
+    "sector": "Index",
+    "group": null,
+    "aliases": [
+      "nifty",
+      "nifty 50"
+    ]
+  },
+  {
+    "code": "CNXBAN",
+    "name": "Bank Nifty",
+    "sector": "Index",
+    "group": null,
+    "aliases": [
+      "bank nifty",
+      "banknifty"
+    ]
+  },
+  {
+    "code": "RELIND",
+    "name": "Reliance Industries",
+    "sector": "Oil Gas & Consumable Fuels",
+    "group": "Reliance Group [Mukesh Ambani]",
+    "aliases": [
+      "reliance",
+      "ril"
+    ]
+  },
+  {
+    "code": "TCS",
+    "name": "Tata Consultancy Services",
+    "sector": "Information Technology",
+    "group": "Tata Group",
+    "aliases": [
+      "tcs"
+    ]
+  },
+  {
+    "code": "HDFBAN",
+    "name": "HDFC Bank",
+    "sector": "Financial Services",
+    "group": "HDFC Group",
+    "aliases": [
+      "hdfc bank"
+    ]
+  },
+  {
+    "code": "ICIBAN",
+    "name": "ICICI Bank",
+    "sector": "Financial Services",
+    "group": "I.C.I.C.I. Group",
+    "aliases": [
+      "icici bank"
+    ]
+  },
+  {
+    "code": "INFTEC",
+    "name": "Infosys",
+    "sector": "Information Technology",
+    "group": "Infosys Group",
+    "aliases": [
+      "infosys",
+      "infy"
+    ]
+  },
+  {
+    "code": "HINLEV",
+    "name": "Hindustan Unilever",
+    "sector": "Fast Moving Consumer Goods",
+    "group": "Uni Lever (F) Group",
+    "aliases": [
+      "hul"
+    ]
+  },
+  {
+    "code": "ITC",
+    "name": "ITC",
+    "sector": "Fast Moving Consumer Goods",
+    "group": "ITC Group",
+    "aliases": [
+      "itc"
+    ]
+  },
+  {
+    "code": "LARTOU",
+    "name": "Larsen & Toubro",
+    "sector": "Construction",
+    "group": "Larsen & Toubro Group",
+    "aliases": [
+      "l&t",
+      "lt"
+    ]
+  },
+  {
+    "code": "BHAAIR",
+    "name": "Bharti Airtel",
+    "sector": "Telecommunication",
+    "group": "Bharti Telecom Group",
+    "aliases": [
+      "airtel"
+    ]
+  },
+  {
+    "code": "STABAN",
+    "name": "State Bank of India",
+    "sector": "Financial Services",
+    "group": "SBI Group",
+    "aliases": [
+      "sbi"
+    ]
+  },
+  {
+    "code": "AXIBAN",
+    "name": "Axis Bank",
+    "sector": "Financial Services",
+    "group": "The Axis Bank Group",
+    "aliases": [
+      "axis bank"
+    ]
+  },
+  {
+    "code": "KOTMAH",
+    "name": "Kotak Mahindra Bank",
+    "sector": "Financial Services",
+    "group": null,
+    "aliases": [
+      "kotak"
+    ]
+  },
+  {
+    "code": "BAJFI",
+    "name": "Bajaj Finance",
+    "sector": "Financial Services",
+    "group": null,
+    "aliases": [
+      "bajaj finance"
+    ]
+  },
+  {
+    "code": "BAFINS",
+    "name": "Bajaj Finserv",
+    "sector": "Financial Services",
+    "group": "Bajaj Group",
+    "aliases": [
+      "bajaj finserv"
+    ]
+  },
+  {
+    "code": "MARUTI",
+    "name": "Maruti Suzuki",
+    "sector": "Automobile and Auto Components",
+    "group": "Suzuki (F) Group",
+    "aliases": [
+      "maruti"
+    ]
+  },
+  {
+    "code": "SUNPHA",
+    "name": "Sun Pharma",
+    "sector": "Healthcare",
+    "group": "Sun Pharmaceutical Group",
+    "aliases": [
+      "sun pharma"
+    ]
+  },
+  {
+    "code": "TATCOV",
+    "name": "Tata Motors",
+    "sector": "Commercial Vehicles",
+    "group": null,
+    "aliases": [
+      "tata motors"
+    ]
+  },
+  {
+    "code": "TATSTE",
+    "name": "Tata Steel",
+    "sector": "Metals & Mining",
+    "group": "Tata Group",
+    "aliases": [
+      "tata steel"
+    ]
+  },
+  {
+    "code": "TATPOW",
+    "name": "Tata Power",
+    "sector": "Power",
+    "group": "Tata Group",
+    "aliases": [
+      "tata power"
+    ]
+  },
+  {
+    "code": "TITIND",
+    "name": "Titan Company",
+    "sector": "Consumer Durables",
+    "group": "Tata Group",
+    "aliases": [
+      "titan"
+    ]
+  },
+  {
+    "code": "TATGLO",
+    "name": "Tata Consumer Products",
+    "sector": "Fast Moving Consumer Goods",
+    "group": "Tata Group",
+    "aliases": [
+      "tata consumer"
+    ]
+  },
+  {
+    "code": "TATELX",
+    "name": "Tata Elxsi",
+    "sector": "Information Technology",
+    "group": "Tata Group",
+    "aliases": [
+      "tata elxsi"
+    ]
+  },
+  {
+    "code": "TATCOM",
+    "name": "Tata Communications",
+    "sector": "Telecommunication",
+    "group": "Tata Group",
+    "aliases": [
+      "tata comm"
+    ]
+  },
+  {
+    "code": "TATCHE",
+    "name": "Tata Chemicals",
+    "sector": "Chemicals",
+    "group": "Tata Group",
+    "aliases": [
+      "tata chemicals"
+    ]
+  },
+  {
+    "code": "TRENT",
+    "name": "Trent",
+    "sector": "Consumer Services",
+    "group": "Tata Group",
+    "aliases": [
+      "trent",
+      "westside"
+    ]
+  },
+  {
+    "code": "ADAENT",
+    "name": "Adani Enterprises",
+    "sector": "Metals & Mining",
+    "group": "Adani Group",
+    "aliases": [
+      "adani enterprises"
+    ]
+  },
+  {
+    "code": "ADAPOR",
+    "name": "Adani Ports",
+    "sector": "Services",
+    "group": "Adani Group",
+    "aliases": [
+      "adani ports"
+    ]
+  },
+  {
+    "code": "ADAGAS",
+    "name": "Adani Total Gas",
+    "sector": "Oil Gas & Consumable Fuels",
+    "group": "Adani Group",
+    "aliases": [
+      "atgl"
+    ]
+  },
+  {
+    "code": "ADAPOW",
+    "name": "Adani Power",
+    "sector": "Power",
+    "group": null,
+    "aliases": [
+      "adani power"
+    ]
+  },
+  {
+    "code": "ADAGRE",
+    "name": "Adani Green Energy",
+    "sector": "Power",
+    "group": "Adani Group",
+    "aliases": [
+      "adani green"
+    ]
+  },
+  {
+    "code": "AMBCE",
+    "name": "Ambuja Cements",
+    "sector": "Construction Materials",
+    "group": "Adani Group",
+    "aliases": [
+      "ambuja"
+    ]
+  },
+  {
+    "code": "MAHMAH",
+    "name": "Mahindra & Mahindra",
+    "sector": "Automobile and Auto Components",
+    "group": "Mahindra & Mahindra Group",
+    "aliases": [
+      "m&m",
+      "mahindra"
+    ]
+  },
+  {
+    "code": "TECMAH",
+    "name": "Tech Mahindra",
+    "sector": "Information Technology",
+    "group": "Mahindra & Mahindra Group",
+    "aliases": [
+      "tech mahindra"
+    ]
+  },
+  {
+    "code": "HDFSTA",
+    "name": "HDFC Life Insurance",
+    "sector": "Financial Services",
+    "group": "HDFC Group",
+    "aliases": [
+      "hdfc life"
+    ]
+  },
+  {
+    "code": "ICILOM",
+    "name": "ICICI Lombard",
+    "sector": "Financial Services",
+    "group": "ICICI Group",
+    "aliases": [
+      "icici lombard"
+    ]
+  },
+  {
+    "code": "ICIPRU",
+    "name": "ICICI Prudential Life",
+    "sector": "Financial Services",
+    "group": "ICICI Group",
+    "aliases": [
+      "icici prudential"
+    ]
+  },
+  {
+    "code": "JIOFIN",
+    "name": "Jio Financial Services",
+    "sector": "Financial Services",
+    "group": "Reliance Group [Mukesh Ambani]",
+    "aliases": [
+      "jio financial"
+    ]
+  },
+  {
+    "code": "ULTCEM",
+    "name": "UltraTech Cement",
+    "sector": "Construction Materials",
+    "group": "Birla Aditya Group",
+    "aliases": [
+      "ultratech"
+    ]
+  },
+  {
+    "code": "GRASIM",
+    "name": "Grasim Industries",
+    "sector": "Construction Materials",
+    "group": "Birla Aditya Group",
+    "aliases": [
+      "grasim"
+    ]
+  },
+  {
+    "code": "HINZIN",
+    "name": "Hindustan Zinc",
+    "sector": "Metals & Mining",
+    "group": "Vedanta Group",
+    "aliases": [
+      "hindustan zinc"
+    ]
+  },
+  {
+    "code": "VEDLIM",
+    "name": "Vedanta",
+    "sector": "Metals & Mining",
+    "group": "Vedanta Group",
+    "aliases": [
+      "vedanta"
+    ]
+  },
+  {
+    "code": "JSWSTE",
+    "name": "JSW Steel",
+    "sector": "Metals & Mining",
+    "group": "Om Prakash Jindal Group",
+    "aliases": [
+      "jsw steel"
+    ]
+  },
+  {
+    "code": "GODCON",
+    "name": "Godrej Consumer",
+    "sector": "Fast Moving Consumer Goods",
+    "group": "Godrej Group",
+    "aliases": [
+      "godrej consumer"
+    ]
+  },
+  {
+    "code": "GODPRO",
+    "name": "Godrej Properties",
+    "sector": "Realty",
+    "group": "Godrej Group",
+    "aliases": [
+      "godrej properties"
+    ]
+  },
+  {
+    "code": "CHOINV",
+    "name": "Cholamandalam Investment",
+    "sector": "Financial Services",
+    "group": "Murugappa Chettiar Group",
+    "aliases": [
+      "chola"
+    ]
+  },
+  {
+    "code": "GOLDEX",
+    "name": "Nippon India ETF Gold BeES",
+    "sector": "Mutual Fund Scheme",
+    "group": null,
+    "aliases": [
+      "gold bees",
+      "goldbees"
+    ]
+  },
+  {
+    "code": "SBIGOL",
+    "name": "SBI Gold Fund",
+    "sector": null,
+    "group": null,
+    "aliases": [
+      "sbigol"
+    ]
+  }
+]

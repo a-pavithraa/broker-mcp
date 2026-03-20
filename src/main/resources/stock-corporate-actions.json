@@ -1,0 +1,30 @@
+[
+  {
+    "stockCode": "ADAPOW",
+    "exDate": "2025-09-22",
+    "quantityMultiplier": 5.0,
+    "type": "SPLIT",
+    "notes": "Stock split 1:5"
+  },
+  {
+    "stockCode": "CDSL",
+    "exDate": "2024-08-23",
+    "quantityMultiplier": 2.0,
+    "type": "BONUS",
+    "notes": "Bonus 1:1"
+  },
+  {
+    "stockCode": "LGEINDIA",
+    "exDate": "2025-10-13",
+    "quantityMultiplier": 1.0,
+    "type": "ALLOTMENT",
+    "notes": "IPO allotment"
+  },
+  {
+    "stockCode": "TATACAP",
+    "exDate": "2025-10-10",
+    "quantityMultiplier": 1.0,
+    "type": "ALLOTMENT",
+    "notes": "IPO allotment"
+  }
+]

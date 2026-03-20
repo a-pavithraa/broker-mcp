@@ -1,0 +1,751 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Portfolio Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: #0f1117;
+            color: #e4e6eb;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+            padding: 24px;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        /* Loading Spinner */
+        .loading-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 400px;
+        }
+
+        .spinner {
+            border: 3px solid #2a2d3a;
+            border-top: 3px solid #00d4aa;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Header */
+        .header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 32px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid #2a2d3a;
+        }
+
+        .header h1 {
+            font-size: 28px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .market-status {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+            color: #8b8d97;
+        }
+
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+        }
+
+        .status-dot.open {
+            background: #00d4aa;
+            box-shadow: 0 0 8px #00d4aa;
+        }
+
+        .status-dot.closed {
+            background: #ffa502;
+            box-shadow: 0 0 8px #ffa502;
+        }
+
+        /* Summary Cards */
+        .summary-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 16px;
+            margin-bottom: 32px;
+        }
+
+        .card {
+            background: #1a1d29;
+            border: 1px solid #2a2d3a;
+            border-radius: 12px;
+            padding: 20px;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+
+        .card:hover {
+            border-color: #3a3d4a;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+        }
+
+        .card-title {
+            font-size: 12px;
+            color: #8b8d97;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 12px;
+            font-weight: 600;
+        }
+
+        .card-value {
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .card-subtitle {
+            font-size: 14px;
+            color: #8b8d97;
+        }
+
+        .card-change {
+            display: flex;
+            gap: 12px;
+            margin-top: 8px;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .change-positive {
+            color: #00d4aa;
+        }
+
+        .change-negative {
+            color: #ff4757;
+        }
+
+        /* Sections */
+        .section {
+            margin-bottom: 32px;
+        }
+
+        .section-title {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 16px;
+            color: #e4e6eb;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #2a2d3a;
+        }
+
+        /* Table */
+        .table-container {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        thead {
+            background: #1a1d29;
+            border-top: 1px solid #2a2d3a;
+            border-bottom: 1px solid #2a2d3a;
+        }
+
+        th {
+            padding: 12px 16px;
+            text-align: left;
+            font-size: 12px;
+            font-weight: 600;
+            color: #8b8d97;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        td {
+            padding: 12px 16px;
+            border-bottom: 1px solid #2a2d3a;
+            font-size: 14px;
+        }
+
+        tbody tr:hover {
+            background: #1a1d29;
+        }
+
+        .stock-name {
+            font-weight: 600;
+            color: #e4e6eb;
+        }
+
+        .stock-code {
+            font-size: 12px;
+            color: #8b8d97;
+            margin-top: 2px;
+        }
+
+        /* Charts */
+        .chart-container {
+            background: #1a1d29;
+            border: 1px solid #2a2d3a;
+            border-radius: 12px;
+            padding: 20px;
+            position: relative;
+            height: 350px;
+        }
+
+        .chart-wrapper {
+            position: relative;
+            height: 100%;
+            width: 100%;
+        }
+
+        /* Grid for two columns */
+        .two-column {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 20px;
+        }
+
+        .movers-panel {
+            background: #1a1d29;
+            border: 1px solid #2a2d3a;
+            border-radius: 12px;
+            padding: 20px;
+        }
+
+        .movers-title {
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 16px;
+            padding-bottom: 12px;
+            border-bottom: 2px solid #2a2d3a;
+        }
+
+        .movers-title.gainers {
+            color: #00d4aa;
+            border-bottom-color: #00d4aa;
+        }
+
+        .movers-title.losers {
+            color: #ff4757;
+            border-bottom-color: #ff4757;
+        }
+
+        .mover-item {
+            padding: 12px 0;
+            border-bottom: 1px solid #2a2d3a;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .mover-item:last-child {
+            border-bottom: none;
+        }
+
+        .mover-name {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .mover-code {
+            font-size: 12px;
+            color: #8b8d97;
+        }
+
+        .mover-change {
+            font-weight: 600;
+            font-size: 14px;
+            text-align: right;
+        }
+
+        .mover-change.gain {
+            color: #00d4aa;
+        }
+
+        .mover-change.loss {
+            color: #ff4757;
+        }
+
+        .mover-pct {
+            font-size: 12px;
+            color: #8b8d97;
+            margin-top: 4px;
+        }
+
+        /* Data source indicator */
+        .data-sources {
+            margin-top: 24px;
+            padding: 12px 16px;
+            background: #1a1d29;
+            border: 1px solid #2a2d3a;
+            border-radius: 8px;
+            font-size: 12px;
+            color: #8b8d97;
+            text-align: center;
+        }
+
+        .source-badge {
+            display: inline-block;
+            background: #2a2d3a;
+            padding: 4px 8px;
+            border-radius: 4px;
+            margin: 0 4px;
+            text-transform: uppercase;
+            font-weight: 600;
+        }
+
+        /* Empty state */
+        .empty-state {
+            text-align: center;
+            padding: 32px;
+            color: #8b8d97;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            body {
+                padding: 16px;
+            }
+
+            .header h1 {
+                font-size: 20px;
+            }
+
+            .card-value {
+                font-size: 24px;
+            }
+
+            .summary-cards {
+                grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+                gap: 12px;
+            }
+
+            th, td {
+                padding: 10px 12px;
+                font-size: 12px;
+            }
+
+            .chart-container {
+                height: 280px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Loading State -->
+        <div class="loading-container" id="loadingContainer">
+            <div class="spinner"></div>
+        </div>
+
+        <!-- Dashboard Content (hidden until data loads) -->
+        <div id="dashboard" style="display: none;">
+            <!-- Header -->
+            <div class="header">
+                <h1>Portfolio Dashboard</h1>
+                <div class="market-status">
+                    <span class="status-dot" id="statusDot"></span>
+                    <span id="statusText"></span>
+                </div>
+            </div>
+
+            <!-- Summary Cards -->
+            <div class="summary-cards">
+                <div class="card">
+                    <div class="card-title">Total Value</div>
+                    <div class="card-value" id="totalValue">-</div>
+                    <div class="card-subtitle" id="totalPnl">-</div>
+                    <div class="card-change">
+                        <span id="totalPnlPct">-</span>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-title">Today's Change</div>
+                    <div class="card-value" id="todaysChange">-</div>
+                    <div class="card-subtitle">
+                        <span id="todaysChangePct">-</span>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-title">Cash Available</div>
+                    <div class="card-value" id="cashAvailable">-</div>
+                    <div class="card-subtitle">Ready to invest</div>
+                </div>
+
+                <div class="card">
+                    <div class="card-title">Holdings</div>
+                    <div class="card-value" id="holdingsCount">-</div>
+                    <div class="card-subtitle">Active positions</div>
+                </div>
+            </div>
+
+            <!-- Top Holdings -->
+            <div class="section">
+                <div class="section-title">Top Holdings by Value</div>
+                <div class="two-column">
+                    <div class="table-container">
+                        <table id="topHoldingsTable">
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Value</th>
+                                    <th>Weight %</th>
+                                </tr>
+                            </thead>
+                            <tbody id="topHoldingsBody">
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="chart-container">
+                        <div class="chart-wrapper">
+                            <canvas id="holdingsChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Daily Movers -->
+            <div class="section">
+                <div class="section-title">Daily Movers</div>
+                <div class="two-column">
+                    <div class="movers-panel">
+                        <div class="movers-title gainers">Top Gainers Today</div>
+                        <div id="topGainers"></div>
+                    </div>
+                    <div class="movers-panel">
+                        <div class="movers-title losers">Top Losers Today</div>
+                        <div id="topLosers"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Overall Winners/Losers -->
+            <div class="section">
+                <div class="section-title">Portfolio Performance</div>
+                <div class="two-column">
+                    <div class="movers-panel">
+                        <div class="movers-title gainers">Biggest Winners</div>
+                        <div id="biggestWinners"></div>
+                    </div>
+                    <div class="movers-panel">
+                        <div class="movers-title losers">Biggest Losers</div>
+                        <div id="biggestLosers"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Data Sources -->
+            <div class="data-sources" id="dataSources"></div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { App } from 'https://cdn.jsdelivr.net/npm/@modelcontextprotocol/ext-apps/+esm';
+
+        const app = new App({
+            name: 'portfolio-dashboard',
+            version: '1.0.0'
+        });
+
+        // Format currency in Indian style
+        const formatCurrency = (value) => {
+            return new Intl.NumberFormat('en-IN', {
+                style: 'currency',
+                currency: 'INR',
+                maximumFractionDigits: 0
+            }).format(value);
+        };
+
+        const formatPercent = (value) => {
+            const sign = value >= 0 ? '+' : '';
+            return sign + value.toFixed(2) + '%';
+        };
+
+        // Chart instance
+        let holdingsChart = null;
+
+        function extractToolPayload(result) {
+            if (result?.structuredContent) {
+                return result.structuredContent;
+            }
+
+            const textEntry = result?.content?.find((item) => typeof item?.text === 'string');
+            if (!textEntry) {
+                return null;
+            }
+
+            return JSON.parse(textEntry.text);
+        }
+
+        // Render dashboard with data
+        const renderDashboard = (data) => {
+            console.log('Portfolio Dashboard Data:', data);
+
+            // Hide loading, show dashboard
+            document.getElementById('loadingContainer').style.display = 'none';
+            document.getElementById('dashboard').style.display = 'block';
+
+            // Market Status
+            const marketStatus = data.market_session || {};
+            const statusDot = document.getElementById('statusDot');
+            const statusText = document.getElementById('statusText');
+
+            if (marketStatus.status === 'open') {
+                statusDot.classList.add('open');
+                statusText.textContent = 'Market Open';
+            } else {
+                statusDot.classList.add('closed');
+                statusText.textContent = 'Market Closed';
+            }
+
+            // Summary
+            const summary = data.summary || {};
+
+            // Total Value Card
+            document.getElementById('totalValue').textContent = formatCurrency(summary.current_value || 0);
+            const pnlAmount = formatCurrency(summary.total_pnl || 0);
+            const pnlPct = summary.total_pnl_pct || 0;
+            document.getElementById('totalPnl').textContent = pnlAmount;
+            const totalPnlPctEl = document.getElementById('totalPnlPct');
+            totalPnlPctEl.textContent = formatPercent(pnlPct);
+            totalPnlPctEl.className = 'card-change ' + (pnlPct >= 0 ? 'change-positive' : 'change-negative');
+
+            // Today's Change Card
+            const todaysChange = summary.todays_change || 0;
+            const todaysChangePct = summary.todays_change_pct || 0;
+            document.getElementById('todaysChange').textContent = formatCurrency(todaysChange);
+            const todaysChangePctEl = document.getElementById('todaysChangePct');
+            todaysChangePctEl.textContent = formatPercent(todaysChangePct);
+            todaysChangePctEl.className = todaysChange >= 0 ? 'change-positive' : 'change-negative';
+
+            // Cash Available
+            document.getElementById('cashAvailable').textContent = formatCurrency(summary.cash_available || 0);
+
+            // Holdings Count
+            document.getElementById('holdingsCount').textContent = summary.holdings_count || 0;
+
+            // Top Holdings Table
+            const topHoldings = data.top_holdings_by_value || [];
+            const tbody = document.getElementById('topHoldingsBody');
+            tbody.innerHTML = '';
+
+            topHoldings.forEach(holding => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td><div class="stock-name">${holding.name}</div><div class="stock-code">${holding.code}</div></td>
+                    <td>${formatCurrency(holding.value || 0)}</td>
+                    <td>${(holding.weight_pct || 0).toFixed(2)}%</td>
+                `;
+                tbody.appendChild(row);
+            });
+
+            // Holdings Pie Chart
+            if (topHoldings.length > 0) {
+                const labels = topHoldings.map(h => h.name);
+                const values = topHoldings.map(h => h.weight_pct || 0);
+
+                // Define color palette for pie chart
+                const colors = [
+                    '#00d4aa', '#ff6b6b', '#4ecdc4', '#45b7d1', '#f9ca24',
+                    '#6c5ce7', '#a29bfe', '#fd79a8', '#fdcb6e', '#6c7a89'
+                ];
+
+                const ctx = document.getElementById('holdingsChart').getContext('2d');
+
+                if (holdingsChart) {
+                    holdingsChart.destroy();
+                }
+
+                holdingsChart = new Chart(ctx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            data: values,
+                            backgroundColor: colors.slice(0, labels.length),
+                            borderColor: '#1a1d29',
+                            borderWidth: 2
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'bottom',
+                                labels: {
+                                    color: '#8b8d97',
+                                    font: { size: 12 },
+                                    padding: 16,
+                                    usePointStyle: true
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+
+            // Daily Gainers
+            const gainers = data.todays_top_gainers || [];
+            const gainersContainer = document.getElementById('topGainers');
+            gainersContainer.innerHTML = '';
+
+            if (gainers.length === 0) {
+                gainersContainer.innerHTML = '<div class="empty-state">No data available</div>';
+            } else {
+                gainers.forEach(gainer => {
+                    const item = document.createElement('div');
+                    item.className = 'mover-item';
+                    item.innerHTML = `
+                        <div class="mover-name">
+                            <div>${gainer.name}</div>
+                            <div class="mover-code">${gainer.code}</div>
+                        </div>
+                        <div class="mover-change gain">
+                            <div>${formatCurrency(gainer.change_today_abs || 0)}</div>
+                            <div class="mover-pct">${formatPercent(gainer.change_today_pct || 0)}</div>
+                        </div>
+                    `;
+                    gainersContainer.appendChild(item);
+                });
+            }
+
+            // Daily Losers
+            const losers = data.todays_top_losers || [];
+            const losersContainer = document.getElementById('topLosers');
+            losersContainer.innerHTML = '';
+
+            if (losers.length === 0) {
+                losersContainer.innerHTML = '<div class="empty-state">No data available</div>';
+            } else {
+                losers.forEach(loser => {
+                    const item = document.createElement('div');
+                    item.className = 'mover-item';
+                    item.innerHTML = `
+                        <div class="mover-name">
+                            <div>${loser.name}</div>
+                            <div class="mover-code">${loser.code}</div>
+                        </div>
+                        <div class="mover-change loss">
+                            <div>${formatCurrency(loser.change_today_abs || 0)}</div>
+                            <div class="mover-pct">${formatPercent(loser.change_today_pct || 0)}</div>
+                        </div>
+                    `;
+                    losersContainer.appendChild(item);
+                });
+            }
+
+            // Biggest Winners
+            const winners = data.biggest_winners_overall || [];
+            const winnersContainer = document.getElementById('biggestWinners');
+            winnersContainer.innerHTML = '';
+
+            if (winners.length === 0) {
+                winnersContainer.innerHTML = '<div class="empty-state">No data available</div>';
+            } else {
+                winners.forEach(winner => {
+                    const item = document.createElement('div');
+                    item.className = 'mover-item';
+                    item.innerHTML = `
+                        <div class="mover-name">
+                            <div>${winner.name}</div>
+                            <div class="mover-code">${winner.code} • ${(winner.portfolio_weight_pct || 0).toFixed(2)}%</div>
+                        </div>
+                        <div class="mover-change gain">
+                            <div>${formatCurrency(winner.pnl_abs || 0)}</div>
+                            <div class="mover-pct">${formatPercent(winner.pnl_pct || 0)}</div>
+                        </div>
+                    `;
+                    winnersContainer.appendChild(item);
+                });
+            }
+
+            // Biggest Losers
+            const allLosers = data.biggest_losers_overall || [];
+            const lossersContainer = document.getElementById('biggestLosers');
+            lossersContainer.innerHTML = '';
+
+            if (allLosers.length === 0) {
+                lossersContainer.innerHTML = '<div class="empty-state">No data available</div>';
+            } else {
+                allLosers.forEach(loser => {
+                    const item = document.createElement('div');
+                    item.className = 'mover-item';
+                    item.innerHTML = `
+                        <div class="mover-name">
+                            <div>${loser.name}</div>
+                            <div class="mover-code">${loser.code} • ${(loser.portfolio_weight_pct || 0).toFixed(2)}%</div>
+                        </div>
+                        <div class="mover-change loss">
+                            <div>${formatCurrency(loser.pnl_abs || 0)}</div>
+                            <div class="mover-pct">${formatPercent(loser.pnl_pct || 0)}</div>
+                        </div>
+                    `;
+                    lossersContainer.appendChild(item);
+                });
+            }
+
+            // Data Sources
+            const sources = data.data_sources || [];
+            const sourcesEl = document.getElementById('dataSources');
+            if (sources.length > 0) {
+                sourcesEl.innerHTML = 'Data from: ' +
+                    sources.map(s => `<span class="source-badge">${s.toUpperCase()}</span>`).join('');
+            }
+
+            setTimeout(() => notifyResize(), 100);
+        };
+
+        function notifyResize() {
+            app.sendSizeChanged({
+                height: document.body.scrollHeight
+            });
+        }
+
+        app.ontoolresult = (result) => {
+            try {
+                const data = extractToolPayload(result);
+                if (data) {
+                    renderDashboard(data);
+                }
+            } catch (error) {
+                console.error('Failed to parse tool result:', error);
+            }
+        };
+
+        app.connect().catch((error) => {
+            console.error('Failed to connect MCP app:', error);
+        });
+
+        window.renderDashboard = renderDashboard;
+    </script>
+</body>
+</html>

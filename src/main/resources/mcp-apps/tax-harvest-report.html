@@ -1,0 +1,1013 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tax Harvest Ledger</title>
+  <style>
+    :root {
+      --bg: #101316;
+      --panel: rgba(18, 24, 29, 0.9);
+      --panel-strong: rgba(24, 31, 37, 0.96);
+      --panel-soft: rgba(240, 226, 202, 0.06);
+      --line: rgba(240, 226, 202, 0.12);
+      --text: #f5efe4;
+      --muted: #c4b7a4;
+      --accent: #f2b84b;
+      --accent-soft: rgba(242, 184, 75, 0.18);
+      --gain: #57d29a;
+      --loss: #ff7a78;
+      --warn: #f2c86a;
+      --shadow: 0 28px 80px rgba(0, 0, 0, 0.34);
+      --display: "Iowan Old Style", "Palatino Linotype", "Book Antiqua", Georgia, serif;
+      --body: "Aptos", "Segoe UI", sans-serif;
+      --mono: "IBM Plex Mono", "SFMono-Regular", Consolas, monospace;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      min-height: 100vh;
+      padding: 28px;
+      color: var(--text);
+      background:
+        radial-gradient(circle at top left, rgba(242, 184, 75, 0.14), transparent 32%),
+        radial-gradient(circle at top right, rgba(87, 210, 154, 0.1), transparent 24%),
+        linear-gradient(180deg, #171b20 0%, #0e1114 100%);
+      font-family: var(--body);
+    }
+
+    .shell {
+      max-width: 1320px;
+      margin: 0 auto;
+      display: grid;
+      gap: 22px;
+    }
+
+    .hero,
+    .panel,
+    .preview-panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 24px;
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(14px);
+    }
+
+    .hero {
+      padding: 30px;
+      display: grid;
+      grid-template-columns: 1.5fr 1fr;
+      gap: 24px;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .hero::after {
+      content: "";
+      position: absolute;
+      right: -80px;
+      top: -80px;
+      width: 260px;
+      height: 260px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(242, 184, 75, 0.18), transparent 68%);
+      pointer-events: none;
+    }
+
+    .eyebrow,
+    .label,
+    .chip,
+    .tiny {
+      font-family: var(--mono);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .eyebrow {
+      font-size: 12px;
+      color: var(--accent);
+      margin-bottom: 14px;
+    }
+
+    h1,
+    h2,
+    h3 {
+      font-family: var(--display);
+      font-weight: 600;
+    }
+
+    h1 {
+      font-size: clamp(2.2rem, 4vw, 3.6rem);
+      line-height: 0.95;
+      max-width: 10ch;
+      margin-bottom: 14px;
+    }
+
+    .hero-copy {
+      max-width: 56ch;
+      color: var(--muted);
+      line-height: 1.6;
+      font-size: 15px;
+    }
+
+    .hero-chips,
+    .source-strip,
+    .preview-tags,
+    .reason-list,
+    .candidate-actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .chip {
+      border: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.03);
+      color: var(--text);
+      border-radius: 999px;
+      padding: 8px 12px;
+      font-size: 11px;
+    }
+
+    .chip.live {
+      color: var(--gain);
+      border-color: rgba(87, 210, 154, 0.28);
+      background: rgba(87, 210, 154, 0.12);
+    }
+
+    .chip.closed {
+      color: var(--warn);
+      border-color: rgba(242, 200, 106, 0.28);
+      background: rgba(242, 200, 106, 0.12);
+    }
+
+    .hero-metrics {
+      display: grid;
+      gap: 14px;
+      align-content: start;
+    }
+
+    .metric-band {
+      padding: 18px;
+      border-radius: 20px;
+      border: 1px solid var(--line);
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.02));
+    }
+
+    .metric-band .label {
+      color: var(--muted);
+      font-size: 11px;
+      margin-bottom: 10px;
+    }
+
+    .metric-band strong {
+      display: block;
+      font-size: 30px;
+      font-family: var(--display);
+      color: var(--text);
+    }
+
+    .metric-band span {
+      display: block;
+      margin-top: 8px;
+      color: var(--muted);
+      line-height: 1.5;
+      font-size: 13px;
+    }
+
+    .dashboard {
+      display: grid;
+      grid-template-columns: minmax(0, 1.75fr) minmax(320px, 0.95fr);
+      gap: 22px;
+      align-items: start;
+    }
+
+    .main-column,
+    .side-column {
+      display: grid;
+      gap: 22px;
+    }
+
+    .panel,
+    .preview-panel {
+      padding: 24px;
+    }
+
+    .panel-head {
+      display: flex;
+      align-items: start;
+      justify-content: space-between;
+      gap: 14px;
+      margin-bottom: 18px;
+    }
+
+    .panel-head p,
+    .subdued {
+      color: var(--muted);
+      line-height: 1.55;
+      font-size: 14px;
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .stat-card,
+    .candidate-card,
+    .preview-card,
+    .sell-row,
+    .review-card {
+      border: 1px solid var(--line);
+      border-radius: 20px;
+      background: var(--panel-soft);
+    }
+
+    .stat-card {
+      padding: 16px;
+    }
+
+    .label {
+      font-size: 11px;
+      color: var(--muted);
+      margin-bottom: 8px;
+    }
+
+    .value {
+      font-family: var(--display);
+      font-size: 26px;
+    }
+
+    .value.loss {
+      color: var(--loss);
+    }
+
+    .value.gain {
+      color: var(--gain);
+    }
+
+    .candidate-grid,
+    .review-grid {
+      display: grid;
+      gap: 14px;
+    }
+
+    .candidate-grid {
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    }
+
+    .candidate-card,
+    .review-card,
+    .sell-row,
+    .preview-card {
+      padding: 18px;
+    }
+
+    .card-top,
+    .sell-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: start;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    .stock {
+      font-size: 22px;
+      font-family: var(--display);
+    }
+
+    .tiny {
+      font-size: 11px;
+      color: var(--muted);
+    }
+
+    .pill {
+      padding: 8px 12px;
+      border-radius: 999px;
+      font-family: var(--mono);
+      font-size: 11px;
+      border: 1px solid transparent;
+    }
+
+    .pill.ltcg {
+      color: var(--accent);
+      background: rgba(242, 184, 75, 0.14);
+      border-color: rgba(242, 184, 75, 0.26);
+    }
+
+    .pill.stcg {
+      color: #8bc3ff;
+      background: rgba(139, 195, 255, 0.14);
+      border-color: rgba(139, 195, 255, 0.24);
+    }
+
+    .pill.unknown {
+      color: var(--warn);
+      background: rgba(242, 200, 106, 0.12);
+      border-color: rgba(242, 200, 106, 0.24);
+    }
+
+    .detail-row {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+      margin-top: 14px;
+    }
+
+    .detail-row div {
+      padding-top: 10px;
+      border-top: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
+    button {
+      border: 0;
+      cursor: pointer;
+      transition: transform 0.18s ease, filter 0.18s ease;
+    }
+
+    button:hover {
+      filter: brightness(1.06);
+      transform: translateY(-1px);
+    }
+
+    .cta {
+      padding: 11px 14px;
+      border-radius: 12px;
+      font-weight: 600;
+      color: #13171b;
+      background: linear-gradient(135deg, #f2b84b, #f4d587);
+    }
+
+    .cta.secondary {
+      color: var(--text);
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid var(--line);
+    }
+
+    .sell-list,
+    .review-grid,
+    .source-list,
+    .note-stack {
+      display: grid;
+      gap: 12px;
+    }
+
+    .source-list .chip {
+      width: fit-content;
+    }
+
+    .banner {
+      padding: 16px 18px;
+      border-radius: 18px;
+      border: 1px solid rgba(242, 200, 106, 0.24);
+      background: rgba(242, 200, 106, 0.08);
+      color: var(--text);
+      line-height: 1.6;
+    }
+
+    .banner strong {
+      color: var(--warn);
+    }
+
+    .preview-panel {
+      position: sticky;
+      top: 28px;
+      display: grid;
+      gap: 14px;
+    }
+
+    .preview-panel.preview-focus {
+      border-color: rgba(242, 184, 75, 0.5);
+      box-shadow: 0 0 0 1px rgba(242, 184, 75, 0.18), 0 28px 80px rgba(0, 0, 0, 0.34);
+      animation: preview-focus-pulse 1.2s ease;
+    }
+
+    @keyframes preview-focus-pulse {
+      0% {
+        transform: translateY(0);
+        background: rgba(34, 41, 48, 0.98);
+      }
+      35% {
+        transform: translateY(-2px);
+        background: rgba(50, 40, 18, 0.98);
+      }
+      100% {
+        transform: translateY(0);
+        background: var(--panel);
+      }
+    }
+
+    .preview-card strong {
+      display: block;
+      font-family: var(--display);
+      font-size: 22px;
+      margin-top: 6px;
+    }
+
+    .preview-list {
+      display: grid;
+      gap: 10px;
+    }
+
+    .preview-line {
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .preview-line b {
+      color: var(--text);
+      font-weight: 600;
+    }
+
+    .empty {
+      padding: 20px;
+      border: 1px dashed rgba(255, 255, 255, 0.14);
+      border-radius: 18px;
+      color: var(--muted);
+      line-height: 1.6;
+    }
+
+    .loading {
+      min-height: 280px;
+      display: grid;
+      place-items: center;
+      text-align: center;
+      color: var(--muted);
+      line-height: 1.8;
+    }
+
+    @media (max-width: 1080px) {
+      .hero,
+      .dashboard {
+        grid-template-columns: 1fr;
+      }
+
+      .preview-panel {
+        position: static;
+      }
+
+      .stats-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+
+    @media (max-width: 720px) {
+      body {
+        padding: 16px;
+      }
+
+      .hero,
+      .panel,
+      .preview-panel {
+        border-radius: 20px;
+        padding: 18px;
+      }
+
+      .stats-grid,
+      .detail-row {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <section class="hero">
+      <div>
+        <div class="eyebrow">MCP Tax Console</div>
+        <h1>Tax Harvest Ledger</h1>
+        <p class="hero-copy" id="heroCopy">Loading fiscal-year gains, unrealized loss buckets, and harvest candidates from the server.</p>
+        <div class="hero-chips" id="heroChips"></div>
+      </div>
+      <div class="hero-metrics" id="heroMetrics"></div>
+    </section>
+
+    <div class="dashboard">
+      <div class="main-column">
+        <section class="panel">
+          <div class="panel-head">
+            <div>
+              <h2>Tax Snapshot</h2>
+              <p>Current FY totals, taxable pockets, and loss inventory translated into a quick ledger.</p>
+            </div>
+          </div>
+          <div class="stats-grid" id="summaryGrid"></div>
+        </section>
+
+        <section class="panel">
+          <div class="panel-head">
+            <div>
+              <h2>Harvest Candidates</h2>
+              <p>Lots trading below cost basis. Previewing one opens a sell-side estimate using the current order preview tool.</p>
+            </div>
+            <div class="chip" id="candidateCountChip">0 candidates</div>
+          </div>
+          <div class="candidate-grid" id="candidateGrid"></div>
+        </section>
+
+        <section class="panel">
+          <div class="panel-head">
+            <div>
+              <h2>Realized Sells</h2>
+              <p>Booked transactions in the active financial year, split by classification and ordered for quick scanning.</p>
+            </div>
+          </div>
+          <div class="sell-list" id="sellList"></div>
+        </section>
+      </div>
+
+      <div class="side-column">
+        <aside class="preview-panel" id="previewPanel">
+          <div class="panel-head">
+            <div>
+              <h2>Sell Preview</h2>
+              <p>Use this to estimate charges and realized P&amp;L before you decide to harvest.</p>
+            </div>
+          </div>
+          <div id="previewHost" class="empty">Pick a harvest candidate to load a sell preview.</div>
+        </aside>
+
+        <section class="panel">
+          <div class="panel-head">
+            <div>
+              <h2>Manual Review</h2>
+              <p>Lots that still need corporate-action or history verification before they can be cleanly classified.</p>
+            </div>
+          </div>
+          <div class="note-stack" id="noticeStack"></div>
+          <div class="review-grid" id="reviewGrid"></div>
+        </section>
+
+        <section class="panel">
+          <div class="panel-head">
+            <div>
+              <h2>Coverage</h2>
+              <p>Broker coverage, supporting data sources, and any recommendation returned by the tax engine.</p>
+            </div>
+          </div>
+          <div class="source-list" id="sourceList"></div>
+        </section>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { App } from 'https://cdn.jsdelivr.net/npm/@modelcontextprotocol/ext-apps/+esm';
+
+    const app = new App({
+      name: 'tax-harvest-report',
+      version: '1.0.0'
+    });
+
+    let previewRequestActive = false;
+
+    const elements = {
+      heroCopy: document.getElementById('heroCopy'),
+      heroChips: document.getElementById('heroChips'),
+      heroMetrics: document.getElementById('heroMetrics'),
+      summaryGrid: document.getElementById('summaryGrid'),
+      candidateGrid: document.getElementById('candidateGrid'),
+      candidateCountChip: document.getElementById('candidateCountChip'),
+      sellList: document.getElementById('sellList'),
+      noticeStack: document.getElementById('noticeStack'),
+      reviewGrid: document.getElementById('reviewGrid'),
+      sourceList: document.getElementById('sourceList'),
+      previewHost: document.getElementById('previewHost'),
+      previewPanel: document.getElementById('previewPanel')
+    };
+
+    let previewFocusTimer = null;
+
+    const currency = (value) => new Intl.NumberFormat('en-IN', {
+      style: 'currency',
+      currency: 'INR',
+      maximumFractionDigits: 0
+    }).format(Number(value || 0));
+
+    const number = (value) => Number(value || 0);
+    const escapeHtml = (value) => String(value ?? '').replace(/[&<>"]/g, (char) => ({
+      '&': '&amp;',
+      '<': '&lt;',
+      '>': '&gt;',
+      '"': '&quot;'
+    })[char]);
+
+    const extractToolText = (result) => {
+      const textEntry = result?.content?.find((item) => typeof item?.text === 'string');
+      return textEntry?.text || null;
+    };
+    const extractToolPayload = (result) => {
+      if (result?.structuredContent) {
+        return result.structuredContent;
+      }
+      const textEntry = extractToolText(result);
+      try {
+        return textEntry ? JSON.parse(textEntry) : null;
+      } catch {
+        return null;
+      }
+    };
+
+    const classificationOf = (entry) => entry?.classification || entry?.holding_period || 'UNKNOWN';
+    const holdingMonthsOf = (entry) => {
+      const months = entry?.holding_months;
+      return Number.isFinite(Number(months)) ? Number(months) : null;
+    };
+    const lossAmountOf = (entry) => {
+      if (entry?.loss_amount != null) {
+        return number(entry.loss_amount);
+      }
+      return Math.abs(number(entry?.gain_or_loss));
+    };
+    const gainAmountOf = (entry) => {
+      if (entry?.gain_or_loss != null) {
+        return number(entry.gain_or_loss);
+      }
+      return number(entry?.estimated_gain_or_loss);
+    };
+    const taxImpactOf = (entry) => number(entry?.tax_impact);
+    const classNameFor = (classification) => classification.toLowerCase();
+    const humanizeLabel = (value) => String(value ?? '')
+      .replaceAll('_', ' ')
+      .replace(/\b\w/g, (char) => char.toUpperCase());
+    const coverageSourcesOf = (rawSources) => {
+      if (Array.isArray(rawSources)) {
+        return rawSources;
+      }
+      if (!rawSources || typeof rawSources !== 'object') {
+        return [];
+      }
+      const normalized = [];
+      Object.entries(rawSources).forEach(([key, value]) => {
+        if (value == null) {
+          return;
+        }
+        if (key === 'zerodha_tradebook' && typeof value === 'object' && !Array.isArray(value)) {
+          normalized.push(`Zerodha imports: ${value.has_imports ? 'available' : 'missing'}`);
+          if (value.imported_trades != null) {
+            normalized.push(`Zerodha imported trades: ${number(value.imported_trades).toFixed(0)}`);
+          }
+          if (value.same_day_api_trades != null) {
+            normalized.push(`Zerodha same-day API trades: ${number(value.same_day_api_trades).toFixed(0)}`);
+          }
+          if (value.covered_range?.from && value.covered_range?.to) {
+            normalized.push(`Zerodha coverage: ${value.covered_range.from} to ${value.covered_range.to}`);
+          }
+          if (number(value.unresolved_adjustments) > 0) {
+            normalized.push(`Zerodha unresolved adjustments: ${number(value.unresolved_adjustments).toFixed(0)}`);
+          }
+          return;
+        }
+        normalized.push(`${humanizeLabel(key)}: ${Array.isArray(value) ? value.join(', ') : value}`);
+      });
+      return normalized;
+    };
+    const sourceLabel = (source) => typeof source === 'string'
+      ? source
+      : [source?.broker, source?.source].filter(Boolean).join(' · ') || JSON.stringify(source);
+
+    function notifyResize() {
+      requestAnimationFrame(() => {
+        app.sendSizeChanged({ height: document.body.scrollHeight });
+      });
+    }
+
+    function focusPreviewPanel() {
+      if (!elements.previewPanel) {
+        return;
+      }
+      elements.previewPanel.scrollIntoView({
+        behavior: 'smooth',
+        block: 'start'
+      });
+      elements.previewPanel.classList.remove('preview-focus');
+      void elements.previewPanel.offsetWidth;
+      elements.previewPanel.classList.add('preview-focus');
+      if (previewFocusTimer) {
+        clearTimeout(previewFocusTimer);
+      }
+      previewFocusTimer = setTimeout(() => {
+        elements.previewPanel.classList.remove('preview-focus');
+      }, 1400);
+    }
+
+    function renderHero(data) {
+      const potential = data.potential_tax_saved || {};
+      const combined = data.combined_estimate || {};
+      const windowLabel = data.data_window ? `${data.data_window.from} to ${data.data_window.to}` : 'Current tax window';
+      elements.heroCopy.textContent = `${data.financial_year || 'Current FY'} overview. ${windowLabel}. ${data.message || 'Review harvestable losses against current taxable gains before placing a sell.'}`;
+      elements.heroChips.innerHTML = [
+        `<div class="chip">${escapeHtml(data.financial_year || 'FY')}</div>`,
+        `<div class="chip">${escapeHtml((data.status || 'unknown').replaceAll('_', ' '))}</div>`,
+        `<div class="chip">${escapeHtml(windowLabel)}</div>`,
+        `<div class="chip">${escapeHtml(combined.tax_note || 'Current equity tax assumptions')}</div>`
+      ].join('');
+      elements.heroMetrics.innerHTML = `
+        <div class="metric-band">
+          <div class="label">Conservative Tax Saved</div>
+          <strong>${currency(potential.conservative_estimate)}</strong>
+          <span>Same-class offsets only. This is the lowest-friction estimate from the current FY state.</span>
+        </div>
+        <div class="metric-band">
+          <div class="label">Maximum Tax Saved</div>
+          <strong>${currency(potential.maximum_estimate)}</strong>
+          <span>${escapeHtml(potential.note || 'Cross-class relief applied where the current rules allow it.')}</span>
+        </div>
+      `;
+    }
+
+    function renderSummary(data) {
+      const realized = data.realized_gains_this_fy || {};
+      const unrealized = data.unrealized_positions || {};
+      const combined = data.combined_estimate || {};
+      const cards = [
+        ['Realized LTCG', realized.realized_ltcg, 'gain'],
+        ['Realized STCG', realized.realized_stcg, 'gain'],
+        ['Harvestable Loss', data.total_harvestable_loss, 'loss'],
+        ['Taxable LTCG', combined.ltcg_taxable, '']
+      ];
+      elements.summaryGrid.innerHTML = cards.map(([label, value, tone]) => `
+        <article class="stat-card">
+          <div class="label">${escapeHtml(label)}</div>
+          <div class="value ${tone}">${currency(value)}</div>
+          <div class="subdued">${label === 'Harvestable Loss'
+            ? `${currency((data.potential_tax_saved || {}).harvestable_ltcg_loss)} LTCG loss and ${currency((data.potential_tax_saved || {}).harvestable_stcg_loss)} STCG loss`
+            : label === 'Taxable LTCG'
+              ? `${currency(combined.total_ltcg)} total LTCG less the exemption buffer`
+              : `${currency(unrealized.unrealized_ltcg)} unrealized LTCG and ${currency(unrealized.unrealized_stcg)} unrealized STCG remain open`}</div>
+        </article>
+      `).join('');
+    }
+
+    function renderCandidates(data) {
+      const candidates = data.harvest_candidates || [];
+      elements.candidateCountChip.textContent = `${candidates.length} candidate${candidates.length === 1 ? '' : 's'}`;
+      if (candidates.length === 0) {
+        elements.candidateGrid.innerHTML = '<div class="empty">No harvestable loss candidates are available right now.</div>';
+        return;
+      }
+      elements.candidateGrid.innerHTML = candidates.map((entry, index) => {
+        const classification = classificationOf(entry);
+        const months = holdingMonthsOf(entry);
+        const reviewText = months == null ? 'Holding period needs manual verification' : `${months} month holding window`;
+        return `
+          <article class="candidate-card">
+            <div class="card-top">
+              <div>
+                <div class="stock">${escapeHtml(entry.stock)}</div>
+                <div class="tiny">${escapeHtml(entry.buy_date || 'Buy date not available')}</div>
+              </div>
+              <div class="pill ${classNameFor(classification)}">${escapeHtml(classification)}</div>
+            </div>
+            <div class="label">Potential Loss</div>
+            <div class="value loss">${currency(lossAmountOf(entry))}</div>
+            <div class="subdued">${escapeHtml(reviewText)}</div>
+            <div class="detail-row">
+              <div><div class="label">Buy Price</div><b>${currency(entry.buy_price)}</b></div>
+              <div><div class="label">Current Price</div><b>${currency(entry.current_price)}</b></div>
+              <div><div class="label">Quantity</div><b>${number(entry.quantity).toFixed(2)}</b></div>
+              <div><div class="label">Tax Impact</div><b>${currency(taxImpactOf(entry))}</b></div>
+            </div>
+            <div class="candidate-actions" style="margin-top:16px;">
+              <button class="cta" data-preview-index="${index}">Preview Sell</button>
+            </div>
+          </article>
+        `;
+      }).join('');
+    }
+
+    function renderRealizedSells(data) {
+      const sells = data.realized_gains_this_fy?.sells || [];
+      if (sells.length === 0) {
+        elements.sellList.innerHTML = '<div class="empty">No realized sells were recorded in the current financial year.</div>';
+        return;
+      }
+      elements.sellList.innerHTML = sells.map((entry) => {
+        const classification = classificationOf(entry);
+        const gain = gainAmountOf(entry);
+        return `
+          <article class="sell-row">
+            <div class="sell-top">
+              <div>
+                <div class="stock">${escapeHtml(entry.stock)}</div>
+                <div class="tiny">${escapeHtml(entry.trade_date || 'Trade date unavailable')} · ${number(entry.quantity).toFixed(2)} shares</div>
+              </div>
+              <div class="pill ${classNameFor(classification)}">${escapeHtml(classification)}</div>
+            </div>
+            <div class="preview-line"><span>Sell Price</span><b>${currency(entry.sell_price || entry.price)}</b></div>
+            <div class="preview-line"><span>Buy Price</span><b>${currency(entry.buy_price)}</b></div>
+            <div class="preview-line"><span>Gain / Loss</span><b style="color:${gain >= 0 ? 'var(--gain)' : 'var(--loss)'};">${currency(gain)}</b></div>
+          </article>
+        `;
+      }).join('');
+    }
+
+    function renderReview(data) {
+      const notices = [];
+      if (data.grandfathering_notice) {
+        notices.push(`<div class="banner"><strong>Grandfathering Notice</strong><br>${escapeHtml(data.grandfathering_notice.note)}</div>`);
+      }
+      if (data.recommendation) {
+        notices.push(`<div class="banner"><strong>Recommendation</strong><br>${escapeHtml(data.recommendation)}</div>`);
+      }
+      elements.noticeStack.innerHTML = notices.join('');
+
+      const reviews = [];
+      const reasons = data.suspected_corporate_action_reasons || [];
+      const estimated = data.estimated_from_holdings_avg || [];
+
+      reasons.forEach((entry) => {
+        reviews.push(`
+          <article class="review-card">
+            <div class="card-top">
+              <div>
+                <div class="stock">${escapeHtml(entry.stock)}</div>
+                <div class="tiny">Corporate action review</div>
+              </div>
+              <div class="pill unknown">Manual</div>
+            </div>
+            <div class="preview-line"><span>Holding Qty</span><b>${number(entry.holding_quantity).toFixed(2)}</b></div>
+            <div class="preview-line"><span>Matched Trades</span><b>${number(entry.matched_trade_quantity).toFixed(2)}</b></div>
+            <div class="preview-line"><span>Unmatched Qty</span><b>${number(entry.unmatched_quantity).toFixed(2)}</b></div>
+            <div class="subdued" style="margin-top:10px;">${escapeHtml(entry.reason)}</div>
+          </article>
+        `);
+      });
+
+      estimated.forEach((entry) => {
+        reviews.push(`
+          <article class="review-card">
+            <div class="card-top">
+              <div>
+                <div class="stock">${escapeHtml(entry.stock)}</div>
+                <div class="tiny">Estimated from holdings average</div>
+              </div>
+              <div class="pill unknown">Estimated</div>
+            </div>
+            <div class="preview-line"><span>Unmatched Qty</span><b>${number(entry.unmatched_quantity).toFixed(2)}</b></div>
+            <div class="preview-line"><span>Estimated Buy</span><b>${currency(entry.estimated_buy_price)}</b></div>
+            <div class="preview-line"><span>Estimated P&amp;L</span><b style="color:${gainAmountOf(entry) >= 0 ? 'var(--gain)' : 'var(--loss)'};">${currency(gainAmountOf(entry))}</b></div>
+            <div class="subdued" style="margin-top:10px;">${escapeHtml(entry.note || 'Requires manual classification.')}</div>
+          </article>
+        `);
+      });
+
+      elements.reviewGrid.innerHTML = reviews.length > 0
+        ? reviews.join('')
+        : '<div class="empty">No manual review items were returned by the service.</div>';
+    }
+
+    function renderCoverage(data) {
+      const sources = coverageSourcesOf(data.data_sources);
+      const chips = [];
+      chips.push(`<div class="chip ${String(data.status).toLowerCase().includes('covered') ? 'live' : 'closed'}">${escapeHtml((data.status || 'unknown').replaceAll('_', ' '))}</div>`);
+      (data.brokers_fully_covered || []).forEach((broker) => chips.push(`<div class="chip">${escapeHtml(`Fully covered: ${broker}`)}</div>`));
+      (data.brokers_partial || []).forEach((broker) => chips.push(`<div class="chip">${escapeHtml(`Partial: ${broker}`)}</div>`));
+      sources.forEach((source) => chips.push(`<div class="chip">${escapeHtml(sourceLabel(source))}</div>`));
+      elements.sourceList.innerHTML = chips.length > 0 ? chips.join('') : '<div class="empty">No coverage metadata returned.</div>';
+    }
+
+    function renderPreviewLoading(stock) {
+      elements.previewHost.innerHTML = `<div class="loading">Loading sell preview for ${escapeHtml(stock)}...</div>`;
+      focusPreviewPanel();
+    }
+
+    function renderPreview(preview) {
+      const order = preview.order_summary || {};
+      const charges = preview.charges || {};
+      const validation = preview.validation || {};
+      const impact = preview.position_impact || {};
+      const messages = validation.messages || [];
+      elements.previewHost.innerHTML = `
+        <div class="preview-card">
+          <div class="label">Order Summary</div>
+          <strong>${escapeHtml(order.stock || 'Unknown stock')}</strong>
+          <div class="preview-tags" style="margin-top:10px;">
+            <div class="chip">${escapeHtml((order.action || 'sell').toUpperCase())}</div>
+            <div class="chip">${number(order.quantity).toFixed(0)} shares</div>
+            <div class="chip">${currency(order.price)}</div>
+          </div>
+        </div>
+        <div class="preview-card">
+          <div class="label">Charges</div>
+          <div class="preview-list">
+            <div class="preview-line"><span>Gross Value</span><b>${currency(order.gross_value)}</b></div>
+            <div class="preview-line"><span>Total Charges</span><b>${currency(charges.total_charges)}</b></div>
+            <div class="preview-line"><span>Net Amount</span><b>${currency(preview.net_amount)}</b></div>
+            <div class="preview-line"><span>Realized P&amp;L</span><b style="color:${number(impact.realized_pnl) >= 0 ? 'var(--gain)' : 'var(--loss)'};">${currency(impact.realized_pnl)}</b></div>
+          </div>
+        </div>
+        <div class="preview-card">
+          <div class="label">Validation</div>
+          <div class="preview-tags">
+            <div class="chip ${validation.ready_to_place ? 'live' : 'closed'}">${validation.ready_to_place ? 'Ready to place' : 'Review first'}</div>
+            <div class="chip">${validation.market_open ? 'Market open' : 'Market closed'}</div>
+          </div>
+          <div class="reason-list" style="margin-top:12px;">
+            ${messages.map((message) => `<div class="subdued">${escapeHtml(message)}</div>`).join('')}
+          </div>
+        </div>
+      `;
+      notifyResize();
+    }
+
+    function renderReport(data) {
+      renderHero(data);
+      renderSummary(data);
+      renderCandidates(data);
+      renderRealizedSells(data);
+      renderReview(data);
+      renderCoverage(data);
+      notifyResize();
+    }
+
+    async function previewCandidate(index) {
+      const candidates = window.__taxReport?.harvest_candidates || [];
+      const entry = candidates[index];
+      if (!entry) {
+        return;
+      }
+      previewRequestActive = true;
+      renderPreviewLoading(entry.stock);
+      try {
+        const result = await app.callServerTool({
+          name: 'order_preview',
+          arguments: {
+            stockCode: entry.stock,
+            action: 'sell',
+            quantity: Math.max(1, Math.round(number(entry.quantity))),
+            orderType: 'market',
+            exchange: 'NSE',
+            broker: entry.broker
+          }
+        });
+        const payload = extractToolPayload(result);
+        if (payload) {
+          renderPreview(payload);
+        } else {
+          const toolText = extractToolText(result);
+          elements.previewHost.innerHTML = `<div class="empty">${escapeHtml(toolText || 'Preview tool returned no payload.')}</div>`;
+        }
+      } catch (error) {
+        elements.previewHost.innerHTML = `<div class="empty">${escapeHtml(error.message || 'Failed to load preview.')}</div>`;
+      } finally {
+        previewRequestActive = false;
+        notifyResize();
+      }
+    }
+
+    elements.candidateGrid.addEventListener('click', (event) => {
+      const button = event.target.closest('[data-preview-index]');
+      if (!button) {
+        return;
+      }
+      previewCandidate(Number(button.dataset.previewIndex));
+    });
+
+    app.ontoolinput = () => {
+      if (!window.__taxReport) {
+        elements.candidateGrid.innerHTML = '<div class="loading">Waiting for tax report payload...</div>';
+      }
+    };
+
+    app.ontoolresult = (result) => {
+      try {
+        if (previewRequestActive) {
+          return;
+        }
+        const payload = extractToolPayload(result);
+        if (!payload) {
+          const toolText = extractToolText(result);
+          if (toolText) {
+            elements.candidateGrid.innerHTML = `<div class="empty">${escapeHtml(toolText)}</div>`;
+            notifyResize();
+          }
+          return;
+        }
+        window.__taxReport = payload;
+        renderReport(payload);
+      } catch (error) {
+        elements.candidateGrid.innerHTML = `<div class="empty">${escapeHtml(error.message || 'Failed to render tax report.')}</div>`;
+        notifyResize();
+      }
+    };
+
+    elements.summaryGrid.innerHTML = '<div class="loading">Connecting to the MCP app and waiting for the initial tax report...</div>';
+    notifyResize();
+    app.connect().catch((error) => {
+      elements.summaryGrid.innerHTML = `<div class="empty">${escapeHtml(error.message || 'Failed to connect MCP app.')}</div>`;
+      notifyResize();
+    });
+  </script>
+</body>
+</html>
