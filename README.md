@@ -118,6 +118,8 @@ These rarely need changing. Set them in your MCP `env` block or shell environmen
 |----------|---------|-------------|
 | `BROKER_TOOLS_MODE` | `readonly` | `readonly` or `full` (enables order placement + tradebook import) |
 | `BROKER_CORPORATE_ACTIONS_STORE_PATH` | `~/.broker-mcp/stock-corporate-actions.json` | External writable corporate-action registry used by tax harvesting |
+| `ZERODHA_TRADEBOOK_IMPORT_ROOT` | `~/.broker-mcp/imports` | Directory scanned on startup for Zerodha tradebook CSV imports |
+| `ZERODHA_TRADEBOOK_STORE_PATH` | `~/.broker-mcp/zerodha-tradebook.json` | Persisted Zerodha tradebook store used for FIFO tax reporting |
 | `BREEZE_TRADING_ENABLED` | `false` | Enable live order execution |
 | `BREEZE_MAX_ORDER_VALUE` | `500000` | Max single order value in INR |
 | `BROKER_PREFERRED_DATA_BROKER` | `zerodha` | Preferred broker for market data |
@@ -211,7 +213,10 @@ Start/restart after each token refresh:
 docker stop broker-mcp 2>/dev/null; docker rm broker-mcp 2>/dev/null
 docker run -d --name broker-mcp -p 8080:8080 \
   -v "$HOME/.broker-mcp:/data" \
+  -e SPRING_PROFILES_ACTIVE=http \
   -e BROKER_CORPORATE_ACTIONS_STORE_PATH=/data/stock-corporate-actions.json \
+  -e ZERODHA_TRADEBOOK_IMPORT_ROOT=/data/imports \
+  -e ZERODHA_TRADEBOOK_STORE_PATH=/data/zerodha-tradebook.json \
   -e BREEZE_ENABLED=true \
   -e BREEZE_API_KEY=your_icici_api_key \
   -e BREEZE_SECRET=your_icici_api_secret \
@@ -225,17 +230,26 @@ docker run -d --name broker-mcp -p 8080:8080 \
 
 No Claude restart needed — the HTTP URL stays the same.
 
+If you use Git Bash (`MINGW64`) on Windows, inline `/data/...` values can be rewritten to
+`C:/Program Files/Git/...`. Prefer `--env-file .env`, run from PowerShell, or prefix the
+command with `MSYS_NO_PATHCONV=1`.
+
 For tradebook imports and persisted corporate-action edits, mount volumes:
 
 ```bash
 docker run -d --name broker-mcp -p 8080:8080 \
-  -v "$HOME/.broker-mcp/imports:/imports:ro" \
   -v "$HOME/.broker-mcp:/data" \
+  -e SPRING_PROFILES_ACTIVE=http \
   -e BROKER_TOOLS_MODE=full \
   -e BROKER_CORPORATE_ACTIONS_STORE_PATH=/data/stock-corporate-actions.json \
+  -e ZERODHA_TRADEBOOK_IMPORT_ROOT=/data/imports \
+  -e ZERODHA_TRADEBOOK_STORE_PATH=/data/zerodha-tradebook.json \
   # ... credential flags ...
   broker-mcp
 ```
+
+If you prefer a separate read-only import mount, use `-v "$HOME/.broker-mcp/imports:/imports:ro"`
+and set `ZERODHA_TRADEBOOK_IMPORT_ROOT=/imports`.
 
 ### Mode 4: HTTP Streamable (local JAR / IDE)
 
@@ -604,3 +618,4 @@ Explain any warnings or limitations in my current portfolio and tax reports in p
 
 **Wrong Python version** — `PYTHON_BIN=/usr/local/bin/python3.11 ./refresh_trading_sessions.sh`
 **Corporate-action edits disappear in Docker** â€” mount a host directory to `/data` and set `BROKER_CORPORATE_ACTIONS_STORE_PATH=/data/stock-corporate-actions.json`
+**Zerodha tradebook store resolves to `/app/C:/Program Files/Git/...` in Docker** â€” Git Bash rewrote your `/data/...` env value. Use `--env-file`, PowerShell, or prefix the Docker command with `MSYS_NO_PATHCONV=1`

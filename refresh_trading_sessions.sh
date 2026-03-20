@@ -26,7 +26,8 @@ fi
 PYTHON_BIN="${PYTHON_BIN:-python3}"
 MODE="${1:-auto}"
 
-# Suppress per-script restarts — we do one restart at the end.
+# Suppress per-script config updates and restarts — we do one sync/restart at the end.
+export MCP_NO_CONFIG_UPDATE=1
 export MCP_NO_RESTART=1
 
 has_breeze() {
@@ -269,6 +270,9 @@ case "$MODE" in
         exit 1
         ;;
 esac
+
+unset MCP_NO_CONFIG_UPDATE
+"$PYTHON_BIN" "$SCRIPT_DIR/scripts/update_mcp_from_session.py"
 
 restart_claude
 

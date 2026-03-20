@@ -38,6 +38,12 @@ from typing import Callable
 # ── Session file ───────────────────────────────────────────────────────────────
 
 _SESSION_FILE = Path.home() / ".broker-mcp" / ".env.session"
+_SYNC_PROBE_KEYS = [
+    "BREEZE_API_KEY",
+    "BREEZE_SESSION",
+    "ZERODHA_API_KEY",
+    "ZERODHA_ACCESS_TOKEN",
+]
 
 
 def write_session_keys(new_keys: dict[str, str]) -> None:
@@ -54,6 +60,18 @@ def write_session_keys(new_keys: dict[str, str]) -> None:
     lines = [f"# Auto-generated — last updated {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"]
     lines.extend(f"{k}={v}" for k, v in sorted(existing.items()))
     _SESSION_FILE.write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+
+def _read_env_file(path: Path) -> dict[str, str]:
+    values: dict[str, str] = {}
+    if not path.exists():
+        return values
+    for line in path.read_text(encoding="utf-8").splitlines():
+        line = line.strip()
+        if line and not line.startswith("#") and "=" in line:
+            key, value = line.split("=", 1)
+            values[key.strip()] = value.strip()
+    return values
 
 
 # ── Platform-aware config paths ────────────────────────────────────────────────
@@ -321,6 +339,9 @@ def update_mcp_env(
     Handles stdio-docker (``-e`` flags in args), env-block, SSE URL, and IDE
     mode entries. Prints the docker command in all cases for easy reference.
     """
+    if os.environ.get("MCP_NO_CONFIG_UPDATE"):
+        return
+
     updated_any = False
     restart_claude = False
 
@@ -377,6 +398,28 @@ def update_mcp_env(
 
     if restart and restart_claude and not os.environ.get("MCP_NO_RESTART"):
         _restart_claude_desktop()
+
+
+def update_mcp_from_session_file(
+    session_file: Path | None = None,
+    restart: bool = True,
+) -> None:
+    target_file = session_file or _SESSION_FILE
+    env_values = _read_env_file(target_file)
+    if not env_values:
+        print(f"\n⚠️  No session values found in: {target_file}")
+        return
+
+    probe_keys = [key for key in _SYNC_PROBE_KEYS if key in env_values]
+    if not probe_keys:
+        print(f"\n⚠️  No broker session keys found in: {target_file}")
+        return
+
+    update_mcp_env(
+        probe_keys=probe_keys,
+        env_values=env_values,
+        restart=restart,
+    )
 
 
 # ── Local fallback ─────────────────────────────────────────────────────────────
