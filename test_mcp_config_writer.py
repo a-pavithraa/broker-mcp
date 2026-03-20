@@ -22,32 +22,9 @@ class McpConfigWriterTests(unittest.TestCase):
         self.addCleanup(lambda: shutil.rmtree(temp_dir, ignore_errors=True))
         return temp_dir
 
-    def test_update_mcp_env_skips_config_changes_when_deferred(self):
-        temp_dir = self.make_temp_dir()
-        config_path = temp_dir / "config.json"
-        original = {
-            "mcpServers": {
-                "trading": {
-                    "command": "java",
-                    "args": ["-jar", "broker-mcp.jar"],
-                    "env": {
-                        "BREEZE_API_KEY": "old-key",
-                        "BREEZE_SESSION": "old-session",
-                    },
-                }
-            }
-        }
-        config_path.write_text(json.dumps(original), encoding="utf-8")
-
+    def test_update_mcp_env_prints_readme_instructions(self):
         output = io.StringIO()
-        with patch.object(
-            mcp_config_writer,
-            "_HOST_RESOLVERS",
-            [("Claude Desktop", lambda: config_path, True)],
-        ), patch.dict(os.environ, {"MCP_NO_CONFIG_UPDATE": "1"}, clear=False), patch(
-            "sys.stdout",
-            output,
-        ):
+        with patch("sys.stdout", output):
             mcp_config_writer.update_mcp_env(
                 probe_keys=["BREEZE_API_KEY", "BREEZE_SESSION"],
                 env_values={
@@ -56,8 +33,9 @@ class McpConfigWriterTests(unittest.TestCase):
                 },
             )
 
-        self.assertEqual(original, json.loads(config_path.read_text(encoding="utf-8")))
-        self.assertEqual("", output.getvalue())
+        printed = output.getvalue()
+        self.assertIn("BREEZE_API_KEY", printed)
+        self.assertIn("README.md", printed)
 
     def test_update_mcp_from_session_file_merges_both_brokers(self):
         temp_dir = self.make_temp_dir()

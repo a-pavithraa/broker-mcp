@@ -46,7 +46,7 @@ See [Deployment Modes](#deployment-modes) below for the config block matching yo
 ./refresh_trading_sessions.sh
 ```
 
-The script logs you in, writes fresh tokens to `~/.broker-mcp/.env.session`, updates your Claude Desktop config, and restarts Claude Desktop.
+The script logs you in and writes fresh tokens to `~/.broker-mcp/.env.session`. You then configure your MCP host and restart the server yourself (see [Deployment Modes](#deployment-modes)).
 
 ---
 
@@ -160,7 +160,7 @@ Claude Desktop launches the JAR directly. Credentials live in the `env` block.
 }
 ```
 
-The refresh script fills in session tokens, sets `*_ENABLED`, and restarts Claude Desktop.
+After refreshing, update your MCP config with the new tokens and restart your server (see [Deployment Modes](#deployment-modes)).
 
 > **Only use one broker?** Remove the other broker's keys and set its `*_ENABLED` to `false`.
 
@@ -175,7 +175,7 @@ Claude Desktop launches the container and pipes stdio. The Dockerfile defaults t
       "command": "docker",
       "args": [
         "run", "-i", "--rm",
-        "-v", "/ABSOLUTE/HOST/PATH/.broker-mcp:/data",
+        "-v", "$HOME/.broker-mcp:/data",
         "-e", "SPRING_PROFILES_ACTIVE=",
         "-e", "BROKER_CORPORATE_ACTIONS_STORE_PATH=/data/stock-corporate-actions.json",
         "-e", "BREEZE_ENABLED=true",
@@ -186,14 +186,14 @@ Claude Desktop launches the container and pipes stdio. The Dockerfile defaults t
         "-e", "ZERODHA_API_KEY=your_zerodha_api_key",
         "-e", "ZERODHA_ACCESS_TOKEN=",
         "-e", "ZERODHA_USER_ID=your_zerodha_user_id",
-        "broker-mcp"
+        "pavithravasudevan/broker-mcp"
       ]
     }
   }
 }
 ```
 
-The refresh script fills in session tokens, sets `*_ENABLED`, and restarts Claude Desktop.
+After refreshing, update your MCP config with the new tokens and restart your server (see [Deployment Modes](#deployment-modes)).
 
 ### Mode 3: HTTP Streamable (Docker, persistent container)
 
@@ -225,7 +225,7 @@ docker run -d --name broker-mcp -p 8080:8080 \
   -e ZERODHA_API_KEY=your_zerodha_api_key \
   -e ZERODHA_ACCESS_TOKEN=your_access_token \
   -e ZERODHA_USER_ID=your_zerodha_user_id \
-  broker-mcp
+  pavithravasudevan/broker-mcp
 ```
 
 No Claude restart needed — the HTTP URL stays the same.
@@ -245,7 +245,7 @@ docker run -d --name broker-mcp -p 8080:8080 \
   -e ZERODHA_TRADEBOOK_IMPORT_ROOT=/data/imports \
   -e ZERODHA_TRADEBOOK_STORE_PATH=/data/zerodha-tradebook.json \
   # ... credential flags ...
-  broker-mcp
+  pavithravasudevan/broker-mcp
 ```
 
 If you prefer a separate read-only import mount, use `-v "$HOME/.broker-mcp/imports:/imports:ro"`
@@ -307,7 +307,7 @@ The script:
 3. **Breeze**: reads OTP from Gmail automatically, or prompts for manual entry
 4. **Zerodha**: submits TOTP automatically, or keeps the browser open for manual 2FA
 5. Writes fresh session tokens to `~/.broker-mcp/.env.session`
-6. Updates your Claude Desktop config and restarts it
+6. Prints instructions to configure your MCP host and restart the server
 
 ---
 
@@ -614,7 +614,7 @@ Explain any warnings or limitations in my current portfolio and tax reports in p
 
 **Zerodha 2FA not automated** — Set `ZERODHA_TOTP_SECRET` in `.env`
 
-**Claude Desktop doesn't restart** — Restart it manually. Auto-restart works on macOS and Windows.
+**Claude Desktop doesn't pick up new tokens** — Restart it manually after updating your config.
 
 **Wrong Python version** — `PYTHON_BIN=/usr/local/bin/python3.11 ./refresh_trading_sessions.sh`
 **Corporate-action edits disappear in Docker** â€” mount a host directory to `/data` and set `BROKER_CORPORATE_ACTIONS_STORE_PATH=/data/stock-corporate-actions.json`
