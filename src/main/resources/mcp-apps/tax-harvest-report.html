@@ -118,8 +118,7 @@
     .hero-chips,
     .source-strip,
     .preview-tags,
-    .reason-list,
-    .candidate-actions {
+    .reason-list {
       display: flex;
       gap: 10px;
       flex-wrap: wrap;
@@ -258,11 +257,6 @@
       gap: 14px;
     }
 
-    .candidate-grid {
-      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-    }
-
-    .candidate-card,
     .review-card,
     .sell-row,
     .preview-card {
@@ -318,12 +312,132 @@
       display: grid;
       grid-template-columns: repeat(2, minmax(0, 1fr));
       gap: 12px;
-      margin-top: 14px;
     }
 
     .detail-row div {
       padding-top: 10px;
       border-top: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
+    .candidate-table {
+      display: grid;
+      gap: 10px;
+    }
+
+    .candidate-table-columns {
+      display: grid;
+      grid-template-columns: minmax(0, 1.55fr) minmax(110px, 0.7fr) minmax(110px, 0.7fr) minmax(90px, 0.5fr) auto;
+      gap: 14px;
+      align-items: start;
+    }
+
+    .candidate-table-head {
+      padding: 0 14px 6px;
+      color: var(--muted);
+      font-family: var(--mono);
+      font-size: 11px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .candidate-entry {
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      background: var(--panel-soft);
+      overflow: hidden;
+    }
+
+    .candidate-row {
+      padding: 16px 18px;
+    }
+
+    .candidate-stock {
+      min-width: 0;
+    }
+
+    .candidate-stock .stock {
+      font-size: 22px;
+      margin-bottom: 6px;
+      line-height: 0.95;
+    }
+
+    .candidate-stock .tiny {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .candidate-cell {
+      display: grid;
+      gap: 4px;
+      min-width: 0;
+      align-content: center;
+    }
+
+    .candidate-cell strong {
+      font-size: 18px;
+      font-family: var(--display);
+      color: var(--text);
+    }
+
+    .candidate-cell strong.loss {
+      color: var(--loss);
+    }
+
+    .candidate-cell .label {
+      margin-bottom: 0;
+    }
+
+    .candidate-actions {
+      display: flex;
+      gap: 8px;
+      justify-content: flex-end;
+      align-items: center;
+      align-self: center;
+    }
+
+    .candidate-actions button {
+      flex: 0 0 auto;
+      white-space: nowrap;
+    }
+
+    .candidate-expand {
+      padding: 9px 12px;
+      border-radius: 10px;
+      color: var(--text);
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid var(--line);
+      font-weight: 600;
+      font-size: 13px;
+      line-height: 1;
+    }
+
+    .candidate-expand[aria-expanded="true"] {
+      background: rgba(242, 184, 75, 0.12);
+      border-color: rgba(242, 184, 75, 0.28);
+      color: var(--accent);
+    }
+
+    .candidate-details {
+      display: none;
+      gap: 12px;
+      padding: 0 18px 16px;
+      border-top: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
+    .candidate-entry.expanded .candidate-details {
+      display: grid;
+    }
+
+    .candidate-note {
+      margin-top: 12px;
+      padding: 10px 12px;
+      border-radius: 14px;
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      background: rgba(255, 255, 255, 0.025);
+      color: var(--muted);
+      line-height: 1.5;
+      font-size: 13px;
     }
 
     button {
@@ -338,9 +452,11 @@
     }
 
     .cta {
-      padding: 11px 14px;
-      border-radius: 12px;
+      padding: 10px 14px;
+      border-radius: 10px;
       font-weight: 600;
+      font-size: 13px;
+      line-height: 1;
       color: #13171b;
       background: linear-gradient(135deg, #f2b84b, #f4d587);
     }
@@ -461,6 +577,22 @@
       }
     }
 
+    @media (max-width: 920px) {
+      .candidate-table-head {
+        display: none;
+      }
+
+      .candidate-table-columns {
+        grid-template-columns: minmax(0, 1fr) repeat(2, minmax(110px, 0.75fr));
+      }
+
+      .candidate-actions {
+        grid-column: 1 / -1;
+        justify-content: flex-start;
+        padding-top: 4px;
+      }
+    }
+
     @media (max-width: 720px) {
       body {
         padding: 16px;
@@ -474,8 +606,20 @@
       }
 
       .stats-grid,
+      .candidate-table-columns,
       .detail-row {
         grid-template-columns: 1fr;
+      }
+
+      .candidate-actions {
+        display: flex;
+        flex-wrap: wrap;
+        width: 100%;
+      }
+
+      .candidate-actions .cta,
+      .candidate-actions .candidate-expand {
+        flex: 1 1 140px;
       }
     }
   </style>
@@ -570,6 +714,7 @@
     });
 
     let previewRequestActive = false;
+    const expandedCandidateIndexes = new Set();
 
     const elements = {
       heroCopy: document.getElementById('heroCopy'),
@@ -756,34 +901,61 @@
         elements.candidateGrid.innerHTML = '<div class="empty">No harvestable loss candidates are available right now.</div>';
         return;
       }
-      elements.candidateGrid.innerHTML = candidates.map((entry, index) => {
-        const classification = classificationOf(entry);
-        const months = holdingMonthsOf(entry);
-        const reviewText = months == null ? 'Holding period needs manual verification' : `${months} month holding window`;
-        return `
-          <article class="candidate-card">
-            <div class="card-top">
-              <div>
-                <div class="stock">${escapeHtml(entry.stock)}</div>
-                <div class="tiny">${escapeHtml(entry.buy_date || 'Buy date not available')}</div>
-              </div>
-              <div class="pill ${classNameFor(classification)}">${escapeHtml(classification)}</div>
-            </div>
-            <div class="label">Potential Loss</div>
-            <div class="value loss">${currency(lossAmountOf(entry))}</div>
-            <div class="subdued">${escapeHtml(reviewText)}</div>
-            <div class="detail-row">
-              <div><div class="label">Buy Price</div><b>${currency(entry.buy_price)}</b></div>
-              <div><div class="label">Current Price</div><b>${currency(entry.current_price)}</b></div>
-              <div><div class="label">Quantity</div><b>${number(entry.quantity).toFixed(2)}</b></div>
-              <div><div class="label">Tax Impact</div><b>${currency(taxImpactOf(entry))}</b></div>
-            </div>
-            <div class="candidate-actions" style="margin-top:16px;">
-              <button class="cta" data-preview-index="${index}">Preview Sell</button>
-            </div>
-          </article>
-        `;
-      }).join('');
+      elements.candidateGrid.innerHTML = `
+        <div class="candidate-table">
+          <div class="candidate-table-head candidate-table-columns">
+            <div>Stock</div>
+            <div>Potential Loss</div>
+            <div>Tax Impact</div>
+            <div>Qty</div>
+            <div>Actions</div>
+          </div>
+          ${candidates.map((entry, index) => {
+            const classification = classificationOf(entry);
+            const months = holdingMonthsOf(entry);
+            const reviewText = months == null ? 'Holding period needs manual verification' : `${months} month holding window`;
+            const isExpanded = expandedCandidateIndexes.has(index);
+            return `
+              <article class="candidate-entry ${isExpanded ? 'expanded' : ''}">
+                <div class="candidate-row candidate-table-columns">
+                  <div class="candidate-stock">
+                    <div class="stock">${escapeHtml(entry.stock)}</div>
+                    <div class="tiny">
+                      <span>${escapeHtml(entry.buy_date || 'Buy date not available')}</span>
+                      <span class="pill ${classNameFor(classification)}">${escapeHtml(classification)}</span>
+                    </div>
+                  </div>
+                  <div class="candidate-cell">
+                    <div class="label">Potential Loss</div>
+                    <strong class="loss">${currency(lossAmountOf(entry))}</strong>
+                  </div>
+                  <div class="candidate-cell">
+                    <div class="label">Tax Impact</div>
+                    <strong>${currency(taxImpactOf(entry))}</strong>
+                  </div>
+                  <div class="candidate-cell">
+                    <div class="label">Quantity</div>
+                    <strong>${number(entry.quantity).toFixed(2)}</strong>
+                  </div>
+                  <div class="candidate-actions">
+                    <button class="candidate-expand" data-expand-index="${index}" aria-expanded="${isExpanded}">${isExpanded ? 'Hide' : 'Details'}</button>
+                    <button class="cta" data-preview-index="${index}">Preview</button>
+                  </div>
+                </div>
+                <div class="candidate-details">
+                  <div class="candidate-note">${escapeHtml(reviewText)}</div>
+                  <div class="detail-row">
+                    <div><div class="label">Buy Price</div><b>${currency(entry.buy_price)}</b></div>
+                    <div><div class="label">Current Price</div><b>${currency(entry.current_price)}</b></div>
+                    <div><div class="label">Broker</div><b>${escapeHtml(entry.broker || 'N/A')}</b></div>
+                    <div><div class="label">Lot Source</div><b>${escapeHtml(entry.source || 'Tax engine')}</b></div>
+                  </div>
+                </div>
+              </article>
+            `;
+          }).join('')}
+        </div>
+      `;
     }
 
     function renderRealizedSells(data) {
@@ -967,6 +1139,18 @@
     }
 
     elements.candidateGrid.addEventListener('click', (event) => {
+      const expandButton = event.target.closest('[data-expand-index]');
+      if (expandButton) {
+        const index = Number(expandButton.dataset.expandIndex);
+        if (expandedCandidateIndexes.has(index)) {
+          expandedCandidateIndexes.delete(index);
+        } else {
+          expandedCandidateIndexes.add(index);
+        }
+        renderCandidates(window.__taxReport || {});
+        notifyResize();
+        return;
+      }
       const button = event.target.closest('[data-preview-index]');
       if (!button) {
         return;

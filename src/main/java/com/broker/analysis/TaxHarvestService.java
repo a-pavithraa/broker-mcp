@@ -220,30 +220,45 @@ class TaxHarvestService {
             List<HoldingSnapshot> holdings,
             LocalDate today
     ) {
-        List<TimelineEvent> timeline = trades.stream()
-                .filter(trade -> trade.tradeDate() != null)
-                .map(trade -> new TimelineEvent(trade.tradeDate(), 1, trade.stockCode().toUpperCase(Locale.ROOT), trade, null))
-                .collect(Collectors.toCollection(ArrayList::new));
-        Set<String> trackedStocks = new java.util.LinkedHashSet<>();
-        trades.stream()
-                .map(TradeSnapshot::stockCode)
-                .filter(Objects::nonNull)
-                .map(code -> code.toUpperCase(Locale.ROOT))
-                .forEach(trackedStocks::add);
-        holdings.stream()
-                .map(HoldingSnapshot::stockCode)
-                .filter(Objects::nonNull)
-                .map(stockMetadataService::resolveNseToIcici)
-                .map(code -> code.toUpperCase(Locale.ROOT))
-                .forEach(trackedStocks::add);
-        for (String stockCode : trackedStocks) {
-            corporateActionService.quantityAdjustmentActionsFor(stockCode, today).forEach(action ->
-                    timeline.add(new TimelineEvent(action.exDate(), 0, stockCode, null, action)));
+        List<TimelineEvent> timeline = new ArrayList<>();
+
+        for (TradeSnapshot trade : trades) {
+            if (trade.tradeDate() != null) {
+                timeline.add(new TimelineEvent(
+                        trade.tradeDate(), 1,
+                        trade.stockCode().toUpperCase(Locale.ROOT),
+                        trade, null));
+            }
         }
+
+        Set<String> trackedStocks = collectTrackedStocks(trades, holdings);
+
+        for (String stockCode : trackedStocks) {
+            for (var action : corporateActionService.quantityAdjustmentActionsFor(stockCode, today)) {
+                timeline.add(new TimelineEvent(action.exDate(), 0, stockCode, null, action));
+            }
+        }
+
         timeline.sort(Comparator.comparing(TimelineEvent::date)
                 .thenComparingInt(TimelineEvent::sortOrder)
                 .thenComparing(TimelineEvent::stockCode));
         return timeline;
+    }
+
+    private Set<String> collectTrackedStocks(List<TradeSnapshot> trades, List<HoldingSnapshot> holdings) {
+        Set<String> stocks = new LinkedHashSet<>();
+        for (TradeSnapshot trade : trades) {
+            if (trade.stockCode() != null) {
+                stocks.add(trade.stockCode().toUpperCase(Locale.ROOT));
+            }
+        }
+        for (HoldingSnapshot holding : holdings) {
+            if (holding.stockCode() != null) {
+                stocks.add(stockMetadataService.resolveNseToIcici(holding.stockCode())
+                        .toUpperCase(Locale.ROOT));
+            }
+        }
+        return stocks;
     }
 
     private void applyCorporateAction(

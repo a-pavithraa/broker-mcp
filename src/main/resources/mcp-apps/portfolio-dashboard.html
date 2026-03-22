@@ -214,13 +214,122 @@
             border-radius: 12px;
             padding: 20px;
             position: relative;
-            height: 350px;
+            height: auto;
+        }
+
+        .allocation-layout {
+            display: grid;
+            grid-template-columns: minmax(240px, 0.9fr) minmax(260px, 1.1fr);
+            gap: 20px;
+            align-items: start;
         }
 
         .chart-wrapper {
             position: relative;
-            height: 100%;
+            height: 220px;
             width: 100%;
+        }
+
+        .allocation-visual {
+            position: relative;
+            display: grid;
+            place-items: center;
+            min-height: 220px;
+            padding-top: 8px;
+        }
+
+        .allocation-center {
+            position: absolute;
+            display: grid;
+            gap: 4px;
+            place-items: center;
+            text-align: center;
+            pointer-events: none;
+        }
+
+        .allocation-center-label {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.12em;
+            color: #8b8d97;
+        }
+
+        .allocation-center-value {
+            font-size: 28px;
+            font-weight: 700;
+            color: #f5f7fb;
+        }
+
+        .allocation-center-subtitle {
+            font-size: 13px;
+            color: #8b8d97;
+        }
+
+        .allocation-breakdown {
+            display: grid;
+            gap: 12px;
+            align-content: start;
+        }
+
+        .allocation-breakdown-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: #f5f7fb;
+        }
+
+        .allocation-item {
+            display: grid;
+            grid-template-columns: auto minmax(0, 1fr) auto;
+            gap: 12px;
+            align-items: start;
+        }
+
+        .allocation-swatch {
+            width: 12px;
+            height: 12px;
+            border-radius: 999px;
+        }
+
+        .allocation-copy {
+            min-width: 0;
+        }
+
+        .allocation-name {
+            font-size: 14px;
+            font-weight: 600;
+            color: #e4e6eb;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .allocation-bar {
+            margin-top: 6px;
+            height: 6px;
+            background: #252938;
+            border-radius: 999px;
+            overflow: hidden;
+        }
+
+        .allocation-fill {
+            height: 100%;
+            border-radius: inherit;
+        }
+
+        .allocation-values {
+            text-align: right;
+            min-width: 88px;
+        }
+
+        .allocation-weight {
+            font-size: 14px;
+            font-weight: 700;
+            color: #f5f7fb;
+        }
+
+        .allocation-amount {
+            font-size: 12px;
+            color: #8b8d97;
         }
 
         /* Grid for two columns */
@@ -352,7 +461,15 @@
             }
 
             .chart-container {
-                height: 280px;
+                height: auto;
+            }
+
+            .allocation-layout {
+                grid-template-columns: 1fr;
+            }
+
+            .chart-wrapper {
+                height: 200px;
             }
         }
     </style>
@@ -425,8 +542,21 @@
                         </table>
                     </div>
                     <div class="chart-container">
-                        <div class="chart-wrapper">
-                            <canvas id="holdingsChart"></canvas>
+                        <div class="allocation-layout">
+                            <div class="allocation-visual">
+                                <div class="chart-wrapper">
+                                    <canvas id="holdingsChart"></canvas>
+                                </div>
+                                <div class="allocation-center" id="allocationCenter">
+                                    <div class="allocation-center-label">Top allocation mix</div>
+                                    <div class="allocation-center-value" id="allocationCoverage">-</div>
+                                    <div class="allocation-center-subtitle" id="allocationFocus">Coverage</div>
+                                </div>
+                            </div>
+                            <div class="allocation-breakdown">
+                                <div class="allocation-breakdown-title">Top allocation mix</div>
+                                <div id="allocationBreakdown"></div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -491,6 +621,9 @@
 
         // Chart instance
         let holdingsChart = null;
+        const allocationPalette = [
+            '#0ec5a7', '#ff6b6b', '#4ecdc4', '#45b7d1', '#f4c542', '#7a8cff'
+        ];
 
         function extractToolPayload(result) {
             if (result?.structuredContent) {
@@ -567,16 +700,23 @@
                 tbody.appendChild(row);
             });
 
-            // Holdings Pie Chart
-            if (topHoldings.length > 0) {
-                const labels = topHoldings.map(h => h.name);
-                const values = topHoldings.map(h => h.weight_pct || 0);
+            const allocationBreakdown = document.getElementById('allocationBreakdown');
+            const allocationCoverage = document.getElementById('allocationCoverage');
+            const allocationFocus = document.getElementById('allocationFocus');
+            allocationBreakdown.innerHTML = '';
 
-                // Define color palette for pie chart
-                const colors = [
-                    '#00d4aa', '#ff6b6b', '#4ecdc4', '#45b7d1', '#f9ca24',
-                    '#6c5ce7', '#a29bfe', '#fd79a8', '#fdcb6e', '#6c7a89'
-                ];
+            // Holdings donut with ranked allocation breakdown
+            if (topHoldings.length > 0) {
+                const visibleHoldings = topHoldings.slice(0, 5);
+                const visibleWeight = visibleHoldings.reduce((sum, holding) => sum + (holding.weight_pct || 0), 0);
+                const othersWeight = Math.max(0, 100 - visibleWeight);
+                const chartHoldings = othersWeight > 0.25
+                    ? [...visibleHoldings, { name: 'Others', value: 0, weight_pct: othersWeight, code: 'REST' }]
+                    : visibleHoldings;
+                const labels = chartHoldings.map(h => h.name);
+                const values = chartHoldings.map(h => h.weight_pct || 0);
+                const colors = labels.map((_, index) => allocationPalette[index % allocationPalette.length]);
+                const leadHolding = visibleHoldings[0];
 
                 const ctx = document.getElementById('holdingsChart').getContext('2d');
 
@@ -590,27 +730,56 @@
                         labels: labels,
                         datasets: [{
                             data: values,
-                            backgroundColor: colors.slice(0, labels.length),
+                            backgroundColor: colors,
                             borderColor: '#1a1d29',
-                            borderWidth: 2
+                            borderWidth: 4,
+                            hoverOffset: 4
                         }]
                     },
                     options: {
                         responsive: true,
                         maintainAspectRatio: false,
+                        cutout: '62%',
                         plugins: {
                             legend: {
-                                position: 'bottom',
-                                labels: {
-                                    color: '#8b8d97',
-                                    font: { size: 12 },
-                                    padding: 16,
-                                    usePointStyle: true
+                                display: false
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: (context) => `${context.label}: ${(context.raw || 0).toFixed(2)}%`
                                 }
                             }
                         }
                     }
                 });
+
+                allocationCoverage.textContent = `${Math.min(visibleWeight, 100).toFixed(1)}%`;
+                allocationFocus.textContent = leadHolding
+                    ? `${leadHolding.name} leads at ${(leadHolding.weight_pct || 0).toFixed(2)}%`
+                    : 'Coverage';
+
+                chartHoldings.forEach((holding, index) => {
+                    const row = document.createElement('div');
+                    row.className = 'allocation-item';
+                    row.innerHTML = `
+                        <span class="allocation-swatch" style="background:${colors[index]};"></span>
+                        <div class="allocation-copy">
+                            <div class="allocation-name">${holding.name}</div>
+                            <div class="allocation-bar">
+                                <div class="allocation-fill" style="width:${Math.max(holding.weight_pct || 0, 2)}%; background:${colors[index]};"></div>
+                            </div>
+                        </div>
+                        <div class="allocation-values">
+                            <div class="allocation-weight">${(holding.weight_pct || 0).toFixed(2)}%</div>
+                            <div class="allocation-amount">${holding.name === 'Others' ? 'Remaining holdings' : formatCurrency(holding.value || 0)}</div>
+                        </div>
+                    `;
+                    allocationBreakdown.appendChild(row);
+                });
+            } else {
+                allocationCoverage.textContent = '-';
+                allocationFocus.textContent = 'No allocation data';
+                allocationBreakdown.innerHTML = '<div class="empty-state">No holding weights available</div>';
             }
 
             // Daily Gainers

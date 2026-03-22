@@ -68,7 +68,7 @@ public class CorporateActionService {
 
     public List<CorporateAction> quantityAdjustmentActionsFor(String stockCode, LocalDate upToDateInclusive) {
         return listActions().stream()
-                .filter(action -> action.affectsLotQuantity())
+                .filter(CorporateAction::affectsLotQuantity)
                 .filter(action -> normalize(stockCode).equals(action.stockCode()))
                 .filter(action -> !action.exDate().isAfter(upToDateInclusive))
                 .toList();
@@ -76,7 +76,7 @@ public class CorporateActionService {
 
     public List<CorporateAction> acquisitionActionsFor(String stockCode, LocalDate upToDateInclusive) {
         return listActions().stream()
-                .filter(action -> action.isAcquisitionHint())
+                .filter(CorporateAction::isAcquisitionHint)
                 .filter(action -> normalize(stockCode).equals(action.stockCode()))
                 .filter(action -> !action.exDate().isAfter(upToDateInclusive))
                 .toList();
