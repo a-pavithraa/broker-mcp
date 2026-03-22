@@ -51,9 +51,12 @@ class DemoProfileApplicationContextTest {
         List<Map<String, Object>> harvestCandidates = (List<Map<String, Object>>) tax.get("harvest_candidates");
 
         assertEquals("OPEN", marketSession.get("status"));
-        assertEquals(4, ((Number) summary.get("holdings_count")).intValue());
+        assertEquals(8, ((Number) summary.get("holdings_count")).intValue());
         assertEquals(102250.0, ((Number) summary.get("cash_available")).doubleValue(), 0.01);
         assertEquals("OK", tax.get("status"));
         assertFalse(harvestCandidates.isEmpty());
+        assertEquals(8, brokerDataProvider.getPortfolioHoldings().size());
+        assertEquals(15, brokerDataProvider.getTrades(null, null).size());
+        assertEquals(4, brokerDataProvider.getGttOrders().size());
     }
 }

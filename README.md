@@ -222,15 +222,20 @@ After refreshing sessions, restart Claude Desktop to pick up the new tokens.
 
 ### Mode 3: HTTP Streamable (Docker, persistent container)
 
-You run the container yourself; Claude connects via URL. Set once in Claude Desktop config:
+You run the container yourself; Claude connects via HTTP. Set once in Claude Desktop config (requires Node.js):
 
 ```json
 {
   "mcpServers": {
-    "trading": { "url": "http://localhost:8080/mcp" }
+    "broker-mcp": {
+      "command": "npx",
+      "args": ["-y", "mcp-remote", "http://localhost:8080/mcp"]
+    }
   }
 }
 ```
+
+> For MCP clients that support the `url` shorthand natively, you can use `{ "url": "http://localhost:8080/mcp" }` instead.
 
 Start/restart after each token refresh:
 
@@ -284,7 +289,8 @@ Or set `SPRING_PROFILES_ACTIVE=http` plus credentials in your IDE run configurat
 |--------------------------|------|
 | `command: "java"` with `env: {…}` | stdio JAR |
 | `command: "docker"` with `-e` flags in `args` | stdio Docker |
-| `url: "http://…"` | HTTP Streamable (Docker or local) |
+| `command: "npx"` with `mcp-remote` arg | HTTP Streamable (Docker or local) |
+| `url: "http://…"` | HTTP Streamable (clients with native `url` support) |
 
 ---
 

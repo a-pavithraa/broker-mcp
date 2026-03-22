@@ -48,7 +48,10 @@ public class DemoBrokerDataProvider implements BrokerDataProvider {
         this.funds = demoFunds();
         this.trades = demoTrades();
         this.gttOrders = List.of(
-                new GttOrderSnapshot("DEMO-GTT-1001", "INFY", 12, "icici")
+                new GttOrderSnapshot("DEMO-GTT-1001", "INFY", 12, "icici"),
+                new GttOrderSnapshot("DEMO-GTT-1002", "TATAPOWER", 18, "icici"),
+                new GttOrderSnapshot("DEMO-GTT-1003", "RELIANCE", 7, "icici"),
+                new GttOrderSnapshot("DEMO-GTT-1004", "SBIN", 20, "icici")
         );
         this.instruments = demoInstruments();
     }
@@ -209,7 +212,11 @@ public class DemoBrokerDataProvider implements BrokerDataProvider {
                 new HoldingSnapshot("INFY", "Infosys", "NSE", 12, 1490, 1815, 0, 1.74, "icici", "INE009A01021"),
                 new HoldingSnapshot("TATAPOWER", "Tata Power", "NSE", 18, 378, 422, 0, 1.44, "icici", "INE245A01021"),
                 new HoldingSnapshot("HDFCBANK", "HDFC Bank", "NSE", 10, 1710, 1580, 0, -0.88, "icici", "INE040A01034"),
-                new HoldingSnapshot("ASIANPAINT", "Asian Paints", "NSE", 6, 3150, 2820, 0, -0.88, "icici", "INE021A01026")
+                new HoldingSnapshot("ASIANPAINT", "Asian Paints", "NSE", 6, 3150, 2820, 0, -0.88, "icici", "INE021A01026"),
+                new HoldingSnapshot("RELIANCE", "Reliance Industries", "NSE", 7, 2460, 3010, 0, 0.92, "icici", "INE002A01018"),
+                new HoldingSnapshot("SBIN", "State Bank of India", "NSE", 20, 715, 812, 0, 1.18, "icici", "INE062A01020"),
+                new HoldingSnapshot("SUNPHARMA", "Sun Pharmaceutical Industries", "NSE", 9, 1710, 1682, 0, -0.64, "icici", "INE044A01036"),
+                new HoldingSnapshot("LT", "Larsen & Toubro", "NSE", 5, 3520, 3668, 0, 0.71, "icici", "INE018A01030")
         );
     }
 
@@ -238,6 +245,14 @@ public class DemoBrokerDataProvider implements BrokerDataProvider {
                 new TradeSnapshot("TATAPOWER", "buy", 18, 378, LocalDate.of(2025, 5, 8), "icici"),
                 new TradeSnapshot("HDFCBANK", "buy", 10, 1710, LocalDate.of(2025, 10, 2), "icici"),
                 new TradeSnapshot("ASIANPAINT", "buy", 6, 3150, LocalDate.of(2024, 1, 12), "icici"),
+                new TradeSnapshot("RELIANCE", "buy", 10, 2460, LocalDate.of(2024, 9, 18), "icici"),
+                new TradeSnapshot("RELIANCE", "sell", 3, 2925, LocalDate.of(2025, 11, 14), "icici"),
+                new TradeSnapshot("SBIN", "buy", 20, 715, LocalDate.of(2025, 7, 1), "icici"),
+                new TradeSnapshot("SUNPHARMA", "buy", 9, 1710, LocalDate.of(2025, 12, 12), "icici"),
+                new TradeSnapshot("LT", "buy", 6, 3520, LocalDate.of(2024, 4, 5), "icici"),
+                new TradeSnapshot("LT", "sell", 1, 3740, LocalDate.of(2025, 9, 4), "icici"),
+                new TradeSnapshot("AXISBANK", "buy", 12, 1040, LocalDate.of(2025, 4, 15), "icici"),
+                new TradeSnapshot("AXISBANK", "sell", 12, 1188, LocalDate.of(2025, 12, 19), "icici"),
                 new TradeSnapshot("ICICIBANK", "buy", 15, 1090, LocalDate.of(2025, 2, 14), "icici"),
                 new TradeSnapshot("ICICIBANK", "sell", 15, 1275, LocalDate.of(2025, 12, 9), "icici")
         );
@@ -252,8 +267,21 @@ public class DemoBrokerDataProvider implements BrokerDataProvider {
         instrumentMap.put(key("TATAPOWER", "NSE"), new DemoInstrument(422, 416, 418, 425, 414, 3_240_000, 0.44, 7, 6, 4_500));
         instrumentMap.put(key("TATAPOWER", "BSE"), new DemoInstrument(421.4, 415.4, 417.2, 424.8, 413.8, 1_480_000, 0.42, 6, 6, 2_100));
         instrumentMap.put(key("HDFCBANK", "NSE"), new DemoInstrument(1580, 1594, 1592, 1601, 1574, 2_120_000, 0.30, 10, 12, 2_400));
+        instrumentMap.put(key("HDFCBANK", "BSE"), new DemoInstrument(1579.4, 1593.2, 1591.6, 1599.8, 1573.5, 760_000, 0.28, 9, 12, 1_200));
         instrumentMap.put(key("ASIANPAINT", "NSE"), new DemoInstrument(2820, 2845, 2840, 2858, 2815, 540_000, 0.24, 15, 16, 900));
+        instrumentMap.put(key("ASIANPAINT", "BSE"), new DemoInstrument(2818.6, 2843.2, 2838.4, 2854.2, 2812.8, 210_000, 0.22, 14, 16, 450));
         instrumentMap.put(key("ICICIBANK", "NSE"), new DemoInstrument(1260, 1248, 1250, 1268, 1243, 2_940_000, 0.38, 11, 11, 2_800));
+        instrumentMap.put(key("ICICIBANK", "BSE"), new DemoInstrument(1258.8, 1247.2, 1249.1, 1266.3, 1241.9, 1_160_000, 0.36, 10, 11, 1_300));
+        instrumentMap.put(key("RELIANCE", "NSE"), new DemoInstrument(3010, 2982, 2991, 3024, 2978, 1_640_000, 0.55, 18, 21, 2_600));
+        instrumentMap.put(key("RELIANCE", "BSE"), new DemoInstrument(3007.4, 2979.8, 2989.5, 3020.6, 2974.7, 690_000, 0.53, 17, 21, 1_100));
+        instrumentMap.put(key("SBIN", "NSE"), new DemoInstrument(812, 802.5, 805, 815.6, 799.4, 4_120_000, 0.49, 9, 8, 5_100));
+        instrumentMap.put(key("SBIN", "BSE"), new DemoInstrument(811.2, 801.8, 804.2, 814.9, 798.8, 1_520_000, 0.46, 8, 8, 2_200));
+        instrumentMap.put(key("SUNPHARMA", "NSE"), new DemoInstrument(1682, 1692.8, 1688.5, 1696.4, 1676.2, 1_180_000, 0.27, 13, 10, 1_700));
+        instrumentMap.put(key("SUNPHARMA", "BSE"), new DemoInstrument(1680.9, 1691.7, 1687.4, 1694.8, 1674.9, 430_000, 0.25, 12, 10, 800));
+        instrumentMap.put(key("LT", "NSE"), new DemoInstrument(3668, 3642.1, 3650, 3678.5, 3638.4, 980_000, 0.41, 18, 19, 1_600));
+        instrumentMap.put(key("LT", "BSE"), new DemoInstrument(3664.8, 3639.7, 3647.8, 3675.2, 3635.2, 390_000, 0.39, 17, 19, 700));
+        instrumentMap.put(key("AXISBANK", "NSE"), new DemoInstrument(1184, 1172.2, 1176.4, 1189.1, 1169.5, 2_280_000, 0.33, 11, 10, 2_900));
+        instrumentMap.put(key("AXISBANK", "BSE"), new DemoInstrument(1182.7, 1171.1, 1175.2, 1187.6, 1168.2, 870_000, 0.31, 10, 10, 1_300));
         return instrumentMap;
     }
 
