@@ -1,6 +1,6 @@
 package com.broker.tools;
 
-import com.broker.service.ZerodhaSessionManager;
+import com.broker.gateway.zerodha.ZerodhaSessionManager;
 import org.springframework.ai.mcp.annotation.McpTool;
 import org.springframework.ai.mcp.annotation.McpToolParam;
 import org.springframework.beans.factory.annotation.Autowired;

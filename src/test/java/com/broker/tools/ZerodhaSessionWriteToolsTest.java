@@ -1,6 +1,6 @@
 package com.broker.tools;
 
-import com.broker.service.ZerodhaSessionManager;
+import com.broker.gateway.zerodha.ZerodhaSessionManager;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import tools.jackson.databind.ObjectMapper;

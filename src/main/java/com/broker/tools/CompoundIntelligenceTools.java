@@ -1,8 +1,8 @@
 package com.broker.tools;
 
-import com.broker.exception.BreezeApiException;
+import com.broker.exception.BrokerApiException;
 import com.broker.exception.BrokerCapabilityException;
-import com.broker.service.CompoundToolService;
+import com.broker.analysis.CompoundToolService;
 import org.springframework.ai.mcp.annotation.McpResource;
 import org.springframework.ai.mcp.annotation.McpTool;
 import org.springframework.ai.mcp.annotation.McpToolParam;
@@ -121,7 +121,7 @@ public class CompoundIntelligenceTools {
             return supplier.get();
         } catch (BrokerCapabilityException ex) {
             return unavailable(toolName, ex.getMessage(), "Use another configured broker for market data or enable the required Zerodha paid tier.");
-        } catch (BreezeApiException ex) {
+        } catch (BrokerApiException ex) {
             if (looksLikeSessionIssue(ex)) {
                 return unavailable(toolName, ex.getMessage(), "Refresh the active broker session and retry.");
             }
@@ -129,7 +129,7 @@ public class CompoundIntelligenceTools {
         }
     }
 
-    private boolean looksLikeSessionIssue(BreezeApiException ex) {
+    private boolean looksLikeSessionIssue(BrokerApiException ex) {
         String message = ex.getMessage();
         if (message == null) {
             return ex.getStatusCode() == 401;

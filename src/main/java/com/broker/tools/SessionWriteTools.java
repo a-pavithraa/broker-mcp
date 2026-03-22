@@ -1,7 +1,7 @@
 package com.broker.tools;
 
-import com.broker.service.BreezeApiClient;
-import com.broker.service.BreezeSessionManager;
+import com.broker.gateway.icici.BreezeApiClient;
+import com.broker.gateway.icici.BreezeSessionManager;
 import org.springframework.ai.mcp.annotation.McpTool;
 import org.springframework.ai.mcp.annotation.McpToolParam;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;

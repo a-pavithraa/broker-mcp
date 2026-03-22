@@ -1,9 +1,9 @@
 package com.broker.tools;
 
-import com.broker.exception.BreezeApiException;
-import com.broker.service.BreezeGatewayService;
-import com.broker.service.CompoundToolService;
-import com.broker.service.ZerodhaGatewayService;
+import com.broker.exception.BrokerApiException;
+import com.broker.gateway.icici.BreezeGatewayService;
+import com.broker.analysis.CompoundToolService;
+import com.broker.gateway.zerodha.ZerodhaGatewayService;
 import org.springframework.ai.mcp.annotation.McpResource;
 import org.springframework.ai.mcp.annotation.McpTool;
 import org.springframework.ai.mcp.annotation.McpToolParam;
@@ -95,13 +95,13 @@ public class TradingTools {
         }
         String normalized = broker.trim().toLowerCase(Locale.ROOT);
         if (!Set.of("icici", "zerodha").contains(normalized)) {
-            throw new BreezeApiException("broker must be 'icici' or 'zerodha'");
+            throw new BrokerApiException("broker must be 'icici' or 'zerodha'");
         }
         if ("icici".equals(normalized) && !iciciConfigured) {
-            throw new BreezeApiException("ICICI broker is not configured");
+            throw new BrokerApiException("ICICI broker is not configured");
         }
         if ("zerodha".equals(normalized) && !zerodhaConfigured) {
-            throw new BreezeApiException("Zerodha broker is not configured");
+            throw new BrokerApiException("Zerodha broker is not configured");
         }
         return normalized;
     }

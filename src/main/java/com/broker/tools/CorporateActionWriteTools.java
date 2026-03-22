@@ -1,6 +1,6 @@
 package com.broker.tools;
 
-import com.broker.service.CorporateActionService;
+import com.broker.reference.CorporateActionService;
 import org.springframework.ai.mcp.annotation.McpTool;
 import org.springframework.ai.mcp.annotation.McpToolParam;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;

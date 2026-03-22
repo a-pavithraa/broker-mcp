@@ -1,8 +1,8 @@
 package com.broker.config;
 
 import com.broker.model.AnalysisModels.TradeSnapshot;
-import com.broker.service.StockMetadataService;
-import com.broker.service.ZerodhaTradebookService;
+import com.broker.reference.StockMetadataService;
+import com.broker.gateway.zerodha.ZerodhaTradebookService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;

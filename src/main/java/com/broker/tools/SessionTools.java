@@ -1,8 +1,8 @@
 package com.broker.tools;
 
 import com.broker.config.TransportModeDetector;
-import com.broker.service.BreezeSessionManager;
-import com.broker.service.ZerodhaSessionManager;
+import com.broker.gateway.icici.BreezeSessionManager;
+import com.broker.gateway.zerodha.ZerodhaSessionManager;
 import org.springframework.ai.mcp.annotation.McpTool;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Autowired;

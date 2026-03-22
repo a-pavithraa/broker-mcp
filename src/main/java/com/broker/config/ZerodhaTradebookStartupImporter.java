@@ -1,6 +1,6 @@
 package com.broker.config;
 
-import com.broker.service.ZerodhaTradebookService;
+import com.broker.gateway.zerodha.ZerodhaTradebookService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.ApplicationArguments;

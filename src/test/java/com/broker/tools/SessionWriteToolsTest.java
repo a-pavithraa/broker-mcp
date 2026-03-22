@@ -1,9 +1,9 @@
 package com.broker.tools;
 
 import com.broker.config.BreezeConfig;
-import com.broker.service.BreezeApiClient;
-import com.broker.service.BreezeSessionManager;
-import com.broker.util.BreezeChecksumGenerator;
+import com.broker.gateway.icici.BreezeApiClient;
+import com.broker.gateway.icici.BreezeSessionManager;
+import com.broker.gateway.icici.BreezeChecksumGenerator;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import tools.jackson.databind.json.JsonMapper;

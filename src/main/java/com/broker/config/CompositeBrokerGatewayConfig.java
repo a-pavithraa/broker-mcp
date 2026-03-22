@@ -1,8 +1,8 @@
 package com.broker.config;
 
-import com.broker.service.BrokerDataProvider;
-import com.broker.service.CompositeBrokerGateway;
-import com.broker.service.StockMetadataService;
+import com.broker.gateway.BrokerDataProvider;
+import com.broker.gateway.CompositeBrokerGateway;
+import com.broker.reference.StockMetadataService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -10,6 +10,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Profile;
 import org.springframework.context.annotation.Primary;
 
 import java.util.Locale;
@@ -28,6 +29,7 @@ public class CompositeBrokerGatewayConfig {
 
     @Bean
     @Primary
+    @Profile("!demo")
     @ConditionalOnBean(name = {"breezeGatewayService", "zerodhaGatewayService"})
     CompositeBrokerGateway compositeBrokerGateway(
             @Qualifier("breezeGatewayService") BrokerDataProvider breezeGatewayService,

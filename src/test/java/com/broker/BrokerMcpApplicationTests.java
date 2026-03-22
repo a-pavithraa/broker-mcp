@@ -1,6 +1,6 @@
 package com.broker;
 
-import com.broker.service.BrokerDataProvider;
+import com.broker.gateway.BrokerDataProvider;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;

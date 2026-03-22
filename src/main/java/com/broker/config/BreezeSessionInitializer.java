@@ -1,7 +1,7 @@
 package com.broker.config;
 
-import com.broker.service.BreezeApiClient;
-import com.broker.service.BreezeSessionManager;
+import com.broker.gateway.icici.BreezeApiClient;
+import com.broker.gateway.icici.BreezeSessionManager;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -37,7 +37,7 @@ public class BreezeSessionInitializer implements ApplicationRunner {
             sessionManager.setSession(apiKey.trim(), apiSecret.trim(), session.sessionKey(), session.userId());
             System.err.println("[Breeze] Session auto-initialized for user: " + session.userId());
         } catch (Exception e) {
-            System.err.println("[Breeze] Failed to auto-initialize session: " + e.getMessage());
+            System.err.println("[Breeze] Failed to auto-initialize session new: " + e.getMessage());
         }
     }
 }

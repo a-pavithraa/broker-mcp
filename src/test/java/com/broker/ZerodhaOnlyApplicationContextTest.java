@@ -1,10 +1,10 @@
 package com.broker;
 
 import com.broker.model.AnalysisModels.*;
-import com.broker.service.BreezeApiClient;
-import com.broker.service.BreezeSessionManager;
-import com.broker.service.BrokerDataProvider;
-import com.broker.service.ZerodhaSessionManager;
+import com.broker.gateway.icici.BreezeApiClient;
+import com.broker.gateway.icici.BreezeSessionManager;
+import com.broker.gateway.BrokerDataProvider;
+import com.broker.gateway.zerodha.ZerodhaSessionManager;
 import com.broker.tools.SessionTools;
 import com.broker.tools.ZerodhaSessionWriteTools;
 import org.junit.jupiter.api.Test;

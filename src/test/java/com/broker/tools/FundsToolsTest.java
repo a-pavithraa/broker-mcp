@@ -1,7 +1,7 @@
 package com.broker.tools;
 
 import com.broker.model.AnalysisModels.*;
-import com.broker.service.BrokerDataProvider;
+import com.broker.gateway.BrokerDataProvider;
 import org.junit.jupiter.api.Test;
 import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.json.JsonMapper;

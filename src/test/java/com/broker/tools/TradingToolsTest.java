@@ -1,11 +1,11 @@
 package com.broker.tools;
 
-import com.broker.exception.BreezeApiException;
+import com.broker.exception.BrokerApiException;
 import com.broker.model.AnalysisModels.*;
-import com.broker.service.BrokerDataProvider;
-import com.broker.service.CompoundToolService;
-import com.broker.service.CompoundToolServiceTestFactory;
-import com.broker.service.StockMetadataService;
+import com.broker.gateway.BrokerDataProvider;
+import com.broker.analysis.CompoundToolService;
+import com.broker.analysis.CompoundToolServiceTestFactory;
+import com.broker.reference.StockMetadataService;
 import org.junit.jupiter.api.Test;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.core.io.DefaultResourceLoader;
@@ -56,7 +56,7 @@ class TradingToolsTest {
     void shouldRejectUnavailableBrokerSelection() {
         TradingTools tools = new TradingTools(new TrackingCompoundToolService(), true, false);
 
-        BreezeApiException error = assertThrows(BreezeApiException.class,
+        BrokerApiException error = assertThrows(BrokerApiException.class,
                 () -> tools.executeTrade("ICICI Bank", "buy", 5, "market", null, false, "NSE", "zerodha"));
 
         assertEquals("Zerodha broker is not configured", error.getMessage());
@@ -66,7 +66,7 @@ class TradingToolsTest {
     void shouldRejectInvalidBrokerValue() {
         TradingTools tools = new TradingTools(new TrackingCompoundToolService(), true, true);
 
-        BreezeApiException error = assertThrows(BreezeApiException.class,
+        BrokerApiException error = assertThrows(BrokerApiException.class,
                 () -> tools.setStopLosses(List.of("TATPOW"), 10, false, "NSE", "upstox"));
 
         assertEquals("broker must be 'icici' or 'zerodha'", error.getMessage());

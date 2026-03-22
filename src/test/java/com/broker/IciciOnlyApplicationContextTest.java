@@ -1,9 +1,9 @@
 package com.broker;
 
-import com.broker.service.BreezeSessionManager;
-import com.broker.service.BrokerDataProvider;
-import com.broker.service.CompositeBrokerGateway;
-import com.broker.service.ZerodhaSessionManager;
+import com.broker.gateway.icici.BreezeSessionManager;
+import com.broker.gateway.BrokerDataProvider;
+import com.broker.gateway.CompositeBrokerGateway;
+import com.broker.gateway.zerodha.ZerodhaSessionManager;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;

@@ -6,9 +6,10 @@ SESSION_FILE="$HOME/.broker-mcp/.env.session"
 PROFILE="${1:-}"
 
 if [[ -f "$SESSION_FILE" ]]; then
-    set -o allexport
-    source "$SESSION_FILE"
-    set +o allexport
+    while IFS= read -r line || [[ -n "$line" ]]; do
+        [[ "$line" =~ ^#.*$ || -z "$line" ]] && continue
+        export "$line"
+    done < "$SESSION_FILE"
     echo "Loaded session from: $SESSION_FILE"
 else
     echo "⚠️  Session file not found: $SESSION_FILE"

@@ -1,6 +1,6 @@
 package com.broker.config;
 
-import com.broker.service.ZerodhaSessionManager;
+import com.broker.gateway.zerodha.ZerodhaSessionManager;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.DefaultApplicationArguments;
 

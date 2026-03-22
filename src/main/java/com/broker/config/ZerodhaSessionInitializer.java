@@ -1,6 +1,6 @@
 package com.broker.config;
 
-import com.broker.service.ZerodhaSessionManager;
+import com.broker.gateway.zerodha.ZerodhaSessionManager;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;

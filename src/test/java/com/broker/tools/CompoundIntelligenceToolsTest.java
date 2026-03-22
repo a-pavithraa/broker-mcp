@@ -1,12 +1,12 @@
 package com.broker.tools;
 
-import com.broker.exception.BreezeApiException;
+import com.broker.exception.BrokerApiException;
 import com.broker.exception.BrokerCapabilityException;
 import com.broker.model.AnalysisModels.*;
-import com.broker.service.BrokerDataProvider;
-import com.broker.service.CompoundToolService;
-import com.broker.service.CompoundToolServiceTestFactory;
-import com.broker.service.StockMetadataService;
+import com.broker.gateway.BrokerDataProvider;
+import com.broker.analysis.CompoundToolService;
+import com.broker.analysis.CompoundToolServiceTestFactory;
+import com.broker.reference.StockMetadataService;
 import org.junit.jupiter.api.Test;
 import org.springframework.ai.mcp.annotation.McpTool;
 import org.springframework.ai.mcp.annotation.context.MetaProvider;
@@ -144,7 +144,7 @@ class CompoundIntelligenceToolsTest {
     @Test
     void stockCheckup_shouldReturnStructuredUnavailableForSessionIssue() throws Exception {
         CompoundIntelligenceTools tools = new CompoundIntelligenceTools(
-                new ThrowingCompoundToolService(new BreezeApiException("Zerodha session expired", 401)),
+                new ThrowingCompoundToolService(new BrokerApiException("Zerodha session expired", 401)),
                 objectMapper
         );
 
@@ -159,7 +159,7 @@ class CompoundIntelligenceToolsTest {
     @Test
     void portfolioSnapshot_shouldReturnStructuredUnavailableForExpiredSession() throws Exception {
         CompoundIntelligenceTools tools = new CompoundIntelligenceTools(
-                new ThrowingCompoundToolService(new BreezeApiException("Zerodha session expired", 401)),
+                new ThrowingCompoundToolService(new BrokerApiException("Zerodha session expired", 401)),
                 objectMapper
         );
 

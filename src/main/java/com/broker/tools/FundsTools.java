@@ -1,7 +1,7 @@
 package com.broker.tools;
 
 import com.broker.model.AnalysisModels.FundsSnapshot;
-import com.broker.service.BrokerDataProvider;
+import com.broker.gateway.BrokerDataProvider;
 import org.springframework.ai.mcp.annotation.McpTool;
 import org.springframework.stereotype.Component;
 import tools.jackson.databind.ObjectMapper;

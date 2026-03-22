@@ -1,9 +1,9 @@
 package com.broker.config;
 
 import com.broker.model.AnalysisModels.*;
-import com.broker.service.BrokerDataProvider;
-import com.broker.service.CompositeBrokerGateway;
-import com.broker.service.StockMetadataService;
+import com.broker.gateway.BrokerDataProvider;
+import com.broker.gateway.CompositeBrokerGateway;
+import com.broker.reference.StockMetadataService;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import org.springframework.context.annotation.Bean;
