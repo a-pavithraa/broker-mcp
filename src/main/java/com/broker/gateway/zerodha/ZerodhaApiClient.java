@@ -3,24 +3,23 @@ package com.broker.gateway.zerodha;
 import com.broker.exception.BrokerApiException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
+import org.springframework.web.client.RestClient;
+import org.springframework.web.client.RestClientException;
+import org.springframework.web.client.RestClientResponseException;
+import org.springframework.web.util.UriBuilder;
 import tools.jackson.core.JacksonException;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 
-import java.io.IOException;
-import java.net.URI;
-import java.net.URLEncoder;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
-import java.nio.charset.StandardCharsets;
-import java.time.Duration;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Map;
-import java.util.StringJoiner;
+import java.util.function.Consumer;
 
 @Service
 @ConditionalOnProperty(name = "zerodha.enabled", havingValue = "true")
@@ -29,20 +28,21 @@ public class ZerodhaApiClient {
     private static final Logger log = LoggerFactory.getLogger(ZerodhaApiClient.class);
     private static final int MAX_RETRIES = 2;
     private static final long RETRY_DELAY_MS = 250;
-    private final HttpClient httpClient;
+
+    private final RestClient restClient;
     private final ObjectMapper objectMapper;
     private final ZerodhaSessionManager sessionManager;
-    private final String baseUrl;
 
     public ZerodhaApiClient(
-            HttpClient httpClient,
+            RestClient.Builder restClientBuilder,
             ObjectMapper objectMapper,
             ZerodhaSessionManager sessionManager,
-            @org.springframework.beans.factory.annotation.Value("${zerodha.base-url:https://api.kite.trade}") String baseUrl) {
-        this.httpClient = httpClient;
+            @Value("${zerodha.base-url:https://api.kite.trade}") String baseUrl) {
+        this.restClient = restClientBuilder.clone()
+                .baseUrl(baseUrl)
+                .build();
         this.objectMapper = objectMapper;
         this.sessionManager = sessionManager;
-        this.baseUrl = baseUrl;
     }
 
     public JsonNode get(String path) {
@@ -50,110 +50,109 @@ public class ZerodhaApiClient {
     }
 
     public JsonNode get(String path, Map<String, ?> params) {
-        HttpRequest request = requestBuilder(path, params)
-                .GET()
-                .build();
-        return send(request);
+        return send(HttpMethod.GET, path, builder -> appendQueryParams(builder, params), null, null);
     }
 
     public JsonNode postForm(String path, Map<String, String> body) {
-        HttpRequest request = requestBuilder(path, Map.of())
-                .header("Content-Type", "application/x-www-form-urlencoded")
-                .POST(HttpRequest.BodyPublishers.ofString(formEncode(body)))
-                .build();
-        return send(request);
+        return send(HttpMethod.POST, path, builder -> {}, MediaType.APPLICATION_FORM_URLENCODED, formBody(body));
     }
 
     public JsonNode postJson(String path, Object body) {
-        HttpRequest request = requestBuilder(path, Map.of())
-                .header("Content-Type", "application/json")
-                .POST(HttpRequest.BodyPublishers.ofString(toJson(body)))
-                .build();
-        return send(request);
+        return send(HttpMethod.POST, path, builder -> {}, MediaType.APPLICATION_JSON, body);
     }
 
-    private HttpRequest.Builder requestBuilder(String path, Map<String, ?> params) {
-        return HttpRequest.newBuilder()
-                .uri(URI.create(buildUrl(path, params)))
-                .header("X-Kite-Version", "3")
-                .header("Authorization", "token " + sessionManager.getApiKey() + ":" + sessionManager.getAccessToken())
-                .timeout(Duration.ofSeconds(30));
-    }
-
-    private String buildUrl(String path, Map<String, ?> params) {
-        String normalizedPath = path.startsWith("/") ? path : "/" + path;
-        if (params == null || params.isEmpty()) {
-            return baseUrl + normalizedPath;
-        }
-
-        List<String> encoded = new ArrayList<>();
-        for (Map.Entry<String, ?> entry : params.entrySet()) {
-            if (entry.getValue() == null) {
-                continue;
-            }
-            if (entry.getValue() instanceof Iterable<?> iterable) {
-                for (Object value : iterable) {
-                    if (value != null) {
-                        encoded.add(encode(entry.getKey(), String.valueOf(value)));
-                    }
-                }
-            } else {
-                encoded.add(encode(entry.getKey(), String.valueOf(entry.getValue())));
-            }
-        }
-        return encoded.isEmpty() ? baseUrl + normalizedPath : baseUrl + normalizedPath + "?" + String.join("&", encoded);
-    }
-
-    private JsonNode send(HttpRequest request) {
+    private JsonNode send(
+            HttpMethod method,
+            String path,
+            Consumer<UriBuilder> queryWriter,
+            MediaType contentType,
+            Object body) {
         int attempt = 0;
-        try {
-            while (true) {
-                HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-                if (response.statusCode() == 503 && attempt < MAX_RETRIES) {
-                    attempt++;
-                    log.warn("Retrying Zerodha request after HTTP 503 for {} attempt {}/{}",
-                            request.uri(), attempt, MAX_RETRIES);
-                    Thread.sleep(RETRY_DELAY_MS * attempt);
-                    continue;
+        while (true) {
+            try {
+                RestClient.RequestBodySpec request = restClient.method(method)
+                        .uri(uriBuilder -> {
+                            UriBuilder builder = uriBuilder.path(normalizePath(path));
+                            queryWriter.accept(builder);
+                            return builder.build();
+                        })
+                        .header("X-Kite-Version", "3")
+                        .header("Authorization",
+                                "token " + sessionManager.getApiKey() + ":" + sessionManager.getAccessToken());
+                if (contentType != null) {
+                    request.contentType(contentType);
                 }
-                if (response.statusCode() >= 400) {
-                    throw new BrokerApiException("Zerodha API error: HTTP " + response.statusCode() + " " + response.body(), response.statusCode());
+                if (body != null) {
+                    request.body(body);
                 }
-                JsonNode parsed = objectMapper.readTree(response.body());
+
+                String responseBody = request.retrieve().body(String.class);
+                JsonNode parsed = objectMapper.readTree(responseBody);
                 if ("error".equalsIgnoreCase(parsed.path("status").asText())) {
                     throw new BrokerApiException(parsed.path("message").asText("Zerodha API request failed"));
                 }
                 return parsed;
+            } catch (RestClientResponseException ex) {
+                if (ex.getStatusCode().value() == 503 && attempt < MAX_RETRIES) {
+                    attempt++;
+                    log.warn("Retrying Zerodha request after HTTP 503 for {} attempt {}/{}",
+                            normalizePath(path), attempt, MAX_RETRIES);
+                    sleepBeforeRetry(attempt);
+                    continue;
+                }
+                throw new BrokerApiException(
+                        "Zerodha API error: HTTP " + ex.getStatusCode().value() + " " + ex.getResponseBodyAsString(),
+                        ex.getStatusCode().value());
+            } catch (RestClientException ex) {
+                throw new BrokerApiException("Zerodha API request failed", ex);
+            } catch (JacksonException ex) {
+                throw new BrokerApiException("Failed to parse Zerodha API response", ex);
             }
-        } catch (IOException e) {
-            throw new BrokerApiException("Zerodha API request failed", e);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            throw new BrokerApiException("Zerodha API request interrupted", e);
         }
     }
 
-    private String toJson(Object body) {
+    private void appendQueryParams(UriBuilder builder, Map<String, ?> params) {
+        if (params == null || params.isEmpty()) {
+            return;
+        }
+        params.forEach((key, value) -> addQueryValue(builder, key, value));
+    }
+
+    private void addQueryValue(UriBuilder builder, String key, Object value) {
+        if (value == null) {
+            return;
+        }
+        if (value instanceof Iterable<?> iterable) {
+            for (Object item : iterable) {
+                if (item != null) {
+                    builder.queryParam(key, String.valueOf(item));
+                }
+            }
+            return;
+        }
+        builder.queryParam(key, String.valueOf(value));
+    }
+
+    private MultiValueMap<String, String> formBody(Map<String, String> body) {
+        LinkedMultiValueMap<String, String> form = new LinkedMultiValueMap<>();
+        body.forEach((key, value) -> {
+            if (value != null) {
+                form.add(key, value);
+            }
+        });
+        return form;
+    }
+
+    private String normalizePath(String path) {
+        return path.startsWith("/") ? path : "/" + path;
+    }
+
+    private void sleepBeforeRetry(int attempt) {
         try {
-            return objectMapper.writeValueAsString(body);
-        } catch (JacksonException e) {
-            throw new BrokerApiException("Failed to serialize Zerodha request body", e);
+            Thread.sleep(RETRY_DELAY_MS * attempt);
+        } catch (InterruptedException ex) {
+            Thread.currentThread().interrupt();
+            throw new BrokerApiException("Zerodha API request interrupted", ex);
         }
-    }
-
-    private String formEncode(Map<String, String> body) {
-        StringJoiner joiner = new StringJoiner("&");
-        for (Map.Entry<String, String> entry : body.entrySet()) {
-            if (entry.getValue() == null) {
-                continue;
-            }
-            joiner.add(encode(entry.getKey(), entry.getValue()));
-        }
-        return joiner.toString();
-    }
-
-    private String encode(String key, String value) {
-        return URLEncoder.encode(key, StandardCharsets.UTF_8)
-                + "=" + URLEncoder.encode(value, StandardCharsets.UTF_8);
     }
 }
