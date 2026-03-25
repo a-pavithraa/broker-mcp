@@ -11,21 +11,13 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Service;
 
-import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import java.io.InputStream;
-import java.net.URI;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.*;
 import java.util.*;
 import java.util.stream.Collectors;
-import java.util.zip.GZIPInputStream;
-import java.util.zip.ZipException;
 
 @Service
 @Order(2)
@@ -55,11 +47,9 @@ public class ZerodhaInstrumentCache implements ApplicationRunner {
 
     @Autowired
     public ZerodhaInstrumentCache(
-            ZerodhaSessionManager sessionManager,
-            HttpClient httpClient,
-            @Value("${zerodha.base-url:https://api.kite.trade}") String baseUrl,
+            ZerodhaInstrumentDownloadClient downloader,
             @Value("${zerodha.instrument-cache.dir:${user.home}/.broker-mcp}") String cacheDir) {
-        this(Path.of(cacheDir), Clock.system(INDIA), new HttpCsvDownloader(httpClient, baseUrl, sessionManager));
+        this(Path.of(cacheDir), Clock.system(INDIA), downloader);
     }
 
     ZerodhaInstrumentCache(Path cacheDir, Clock clock, CsvDownloader downloader) {
@@ -365,46 +355,5 @@ public class ZerodhaInstrumentCache implements ApplicationRunner {
     @FunctionalInterface
     interface CsvDownloader {
         String download(String exchange) throws IOException, InterruptedException;
-    }
-
-    private static final class HttpCsvDownloader implements CsvDownloader {
-
-        private final HttpClient httpClient;
-        private final String baseUrl;
-        private final ZerodhaSessionManager sessionManager;
-
-        private HttpCsvDownloader(HttpClient httpClient, String baseUrl, ZerodhaSessionManager sessionManager) {
-            this.httpClient = httpClient;
-            this.baseUrl = baseUrl;
-            this.sessionManager = sessionManager;
-        }
-
-        @Override
-        public String download(String exchange) throws IOException, InterruptedException {
-            if (!sessionManager.hasActiveSession()) {
-                throw new BrokerApiException("Zerodha session is not initialized");
-            }
-
-            HttpRequest request = HttpRequest.newBuilder()
-                    .uri(URI.create(baseUrl + "/instruments/" + exchange))
-                    .header("X-Kite-Version", "3")
-                    .header("Authorization", "token " + sessionManager.getApiKey() + ":" + sessionManager.getAccessToken())
-                    .GET()
-                    .build();
-
-            HttpResponse<byte[]> response = httpClient.send(request, HttpResponse.BodyHandlers.ofByteArray());
-            if (response.statusCode() >= 400) {
-                throw new BrokerApiException("Zerodha instruments download failed for " + exchange + ": HTTP " + response.statusCode());
-            }
-            return decodeBody(response.body());
-        }
-
-        private String decodeBody(byte[] bytes) throws IOException {
-            try (InputStream inputStream = new GZIPInputStream(new ByteArrayInputStream(bytes))) {
-                return new String(inputStream.readAllBytes(), StandardCharsets.UTF_8);
-            } catch (ZipException ex) {
-                return new String(bytes, StandardCharsets.UTF_8);
-            }
-        }
     }
 }
