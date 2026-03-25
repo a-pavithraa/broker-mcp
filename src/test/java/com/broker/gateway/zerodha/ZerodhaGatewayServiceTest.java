@@ -12,6 +12,7 @@ import com.broker.reference.StockMetadataService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.springframework.core.io.DefaultResourceLoader;
+import org.springframework.web.client.RestClient;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.json.JsonMapper;
@@ -566,7 +567,7 @@ class ZerodhaGatewayServiceTest {
         private int quoteCalls;
 
         private RecordingZerodhaApiClient(ObjectMapper objectMapper) {
-            super(null, objectMapper, new ZerodhaSessionManager(), "https://api.kite.trade");
+            super(RestClient.builder(), objectMapper, new ZerodhaSessionManager(), "https://api.kite.trade");
         }
 
         @Override
