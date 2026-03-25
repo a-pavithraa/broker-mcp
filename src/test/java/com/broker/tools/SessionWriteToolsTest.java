@@ -6,6 +6,7 @@ import com.broker.gateway.icici.BreezeSessionManager;
 import com.broker.gateway.icici.BreezeChecksumGenerator;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.web.client.RestClient;
 import tools.jackson.databind.json.JsonMapper;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -17,12 +18,12 @@ class SessionWriteToolsTest {
     @BeforeEach
     void setUp() {
         BreezeSessionManager sessionManager = new BreezeSessionManager();
-        java.net.http.HttpClient httpClient = java.net.http.HttpClient.newBuilder()
-                .connectTimeout(java.time.Duration.ofSeconds(30))
-                .build();
         BreezeApiClient apiClient = new BreezeApiClient(
-                new BreezeConfig(null, null), sessionManager, new BreezeChecksumGenerator(),
-                JsonMapper.builder().build(), httpClient);
+                new BreezeConfig("https://example.test", null),
+                sessionManager,
+                new BreezeChecksumGenerator(),
+                JsonMapper.builder().build(),
+                RestClient.builder());
         sessionWriteTools = new SessionWriteTools(sessionManager, apiClient);
     }
 

@@ -4,19 +4,18 @@ import com.broker.config.BreezeConfig;
 import com.broker.exception.BrokerApiException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.MediaType;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestClient;
+import org.springframework.web.client.RestClientException;
+import org.springframework.web.client.RestClientResponseException;
 import tools.jackson.core.JacksonException;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 
-import java.io.IOException;
-import java.net.URI;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
-import java.time.Duration;
 import java.util.Map;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -35,23 +34,23 @@ public class BreezeApiClient {
 
     private final ReentrantLock requestLock = new ReentrantLock();
     private volatile long lastRequestTime = 0;
-    private final BreezeConfig breezeConfig;
     private final BreezeSessionManager sessionManager;
     private final BreezeChecksumGenerator checksumGenerator;
     private final ObjectMapper objectMapper;
-    private final HttpClient httpClient;
+    private final RestClient restClient;
 
     public BreezeApiClient(
             BreezeConfig breezeConfig,
             BreezeSessionManager sessionManager,
             BreezeChecksumGenerator checksumGenerator,
             ObjectMapper objectMapper,
-            HttpClient httpClient) {
-        this.breezeConfig = breezeConfig;
+            RestClient.Builder restClientBuilder) {
         this.sessionManager = sessionManager;
         this.checksumGenerator = checksumGenerator;
         this.objectMapper = objectMapper;
-        this.httpClient = httpClient;
+        this.restClient = restClientBuilder.clone()
+                .baseUrl(breezeConfig.baseUrl())
+                .build();
     }
 
     public JsonNode get(String endpoint) {
@@ -63,64 +62,35 @@ public class BreezeApiClient {
     }
 
     public JsonNode get(String endpoint, Object body) {
-        String url = buildUrl(endpoint);
         String jsonBody = (body instanceof Map<?, ?> m && m.isEmpty()) ? "{}" : toJson(body);
-        HttpRequest request = authenticatedRequestBuilder(url, jsonBody)
-                .method("GET", HttpRequest.BodyPublishers.ofString(jsonBody))
-                .timeout(Duration.ofSeconds(60))
-                .build();
-
-        return executeRequest(request);
+        return executeRequest(() -> executeAuthenticatedWithRetry(HttpMethod.GET, endpoint, jsonBody));
     }
 
     public JsonNode post(String endpoint, Object body) {
-        String url = buildUrl(endpoint);
         String jsonBody = toJson(body);
-        HttpRequest request = authenticatedRequestBuilder(url, jsonBody)
-                .POST(HttpRequest.BodyPublishers.ofString(jsonBody))
-                .timeout(Duration.ofSeconds(60))
-                .build();
-
-        return executeRequest(request);
+        return executeRequest(() -> executeAuthenticatedWithRetry(HttpMethod.POST, endpoint, jsonBody));
     }
 
     public JsonNode put(String endpoint, Object body) {
-        String url = buildUrl(endpoint);
         String jsonBody = toJson(body);
-        HttpRequest request = authenticatedRequestBuilder(url, jsonBody)
-                .PUT(HttpRequest.BodyPublishers.ofString(jsonBody))
-                .timeout(Duration.ofSeconds(60))
-                .build();
-
-        return executeRequest(request);
+        return executeRequest(() -> executeAuthenticatedWithRetry(HttpMethod.PUT, endpoint, jsonBody));
     }
 
     public JsonNode delete(String endpoint, Object body) {
-        String url = buildUrl(endpoint);
         String jsonBody = toJson(body);
-        HttpRequest request = authenticatedRequestBuilder(url, jsonBody)
-                .method("DELETE", HttpRequest.BodyPublishers.ofString(jsonBody))
-                .timeout(Duration.ofSeconds(60))
-                .build();
-
-        return executeRequest(request);
+        return executeRequest(() -> executeAuthenticatedWithRetry(HttpMethod.DELETE, endpoint, jsonBody));
     }
 
     public record SessionDetails(String userId, String sessionKey) {}
 
     public SessionDetails generateSession(String apiKey, String apiSession) {
-        String url = breezeConfig.baseUrl() + "/customerdetails";
         String formBody = "AppKey=" + java.net.URLEncoder.encode(apiKey, StandardCharsets.UTF_8)
                 + "&SessionToken=" + java.net.URLEncoder.encode(apiSession, StandardCharsets.UTF_8);
-
-        HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create(url))
-                .header("Content-Type", "application/x-www-form-urlencoded")
-                .method("GET", HttpRequest.BodyPublishers.ofString(formBody))
-                .timeout(Duration.ofSeconds(30))
-                .build();
-
-        JsonNode response = executeRequest(request);
+        JsonNode response = executeRequest(() -> executeUnauthenticatedWithRetry(
+                HttpMethod.GET,
+                "/customerdetails",
+                MediaType.APPLICATION_FORM_URLENCODED,
+                formBody));
 
         JsonNode success = response.path("Success");
         if (success.isMissingNode() || !success.has("session_token")) {
@@ -140,34 +110,14 @@ public class BreezeApiClient {
         return new SessionDetails(parts[0], parts[1]);
     }
 
-    private String buildUrl(String endpoint) {
-        String baseUrl = breezeConfig.baseUrl();
-        if (endpoint.startsWith("/")) {
-            return baseUrl + endpoint;
-        }
-        return baseUrl + "/" + endpoint;
-    }
-
-    private HttpRequest.Builder authenticatedRequestBuilder(String url, String jsonBody) {
-        String timestamp = checksumGenerator.generateTimestamp();
-        String checksum = checksumGenerator.generateChecksum(timestamp, jsonBody, sessionManager.getSecretKey());
-        return HttpRequest.newBuilder()
-                .uri(URI.create(url))
-                .header("Content-Type", "application/json")
-                .header(HEADER_APP_KEY, sessionManager.getApiKey())
-                .header(HEADER_SESSION_TOKEN, sessionManager.getBase64SessionToken())
-                .header(HEADER_TIMESTAMP, timestamp)
-                .header(HEADER_CHECKSUM, "token " + checksum);
-    }
-
-    private JsonNode executeRequest(HttpRequest request) {
+    private JsonNode executeRequest(RequestExecutor requestExecutor) {
         requestLock.lock();
         try {
             long elapsed = System.currentTimeMillis() - lastRequestTime;
             if (elapsed < MIN_REQUEST_GAP_MS) {
                 Thread.sleep(MIN_REQUEST_GAP_MS - elapsed);
             }
-            JsonNode result = executeWithRetry(request);
+            JsonNode result = requestExecutor.execute();
             lastRequestTime = System.currentTimeMillis();
             return result;
         } catch (InterruptedException e) {
@@ -178,39 +128,61 @@ public class BreezeApiClient {
         }
     }
 
-    private JsonNode executeWithRetry(HttpRequest request) {
+    private JsonNode executeAuthenticatedWithRetry(HttpMethod method, String endpoint, String jsonBody) {
+        String timestamp = checksumGenerator.generateTimestamp();
+        String checksum = checksumGenerator.generateChecksum(timestamp, jsonBody, sessionManager.getSecretKey());
+        return executeWithRetry(method, endpoint, MediaType.APPLICATION_JSON, jsonBody, Map.of(
+                HEADER_APP_KEY, sessionManager.getApiKey(),
+                HEADER_SESSION_TOKEN, sessionManager.getBase64SessionToken(),
+                HEADER_TIMESTAMP, timestamp,
+                HEADER_CHECKSUM, "token " + checksum
+        ));
+    }
+
+    private JsonNode executeUnauthenticatedWithRetry(
+            HttpMethod method,
+            String endpoint,
+            MediaType contentType,
+            String body) {
+        return executeWithRetry(method, endpoint, contentType, body, Map.of());
+    }
+
+    private JsonNode executeWithRetry(
+            HttpMethod method,
+            String endpoint,
+            MediaType contentType,
+            String body,
+            Map<String, String> headers) {
         int attempt = 0;
         while (true) {
             try {
-                HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+                RestClient.RequestBodySpec request = restClient.method(method)
+                        .uri(normalizeEndpoint(endpoint))
+                        .contentType(contentType);
+                headers.forEach(request::header);
+                if (body != null) {
+                    request.body(body);
+                }
 
-                if (response.statusCode() == 503 && attempt < MAX_RETRIES) {
+                String responseBody = request.retrieve().body(String.class);
+                return objectMapper.readTree(responseBody);
+            } catch (RestClientResponseException e) {
+                if (e.getStatusCode().value() == 503 && attempt < MAX_RETRIES) {
                     attempt++;
                     log.warn("Retrying Breeze request after HTTP 503 for {} attempt {}/{}",
-                            request.uri(), attempt, MAX_RETRIES);
-                    Thread.sleep(RETRY_DELAY_MS * attempt);
+                            normalizeEndpoint(endpoint), attempt, MAX_RETRIES);
+                    sleepBeforeRetry(attempt);
                     continue;
                 }
-
-                if (response.statusCode() >= 400) {
-                    log.error("Breeze request failed status={} url={} body={}",
-                            response.statusCode(),
-                            request.uri(),
-                            response.body().substring(0, Math.min(200, response.body().length())));
-                    throw new BrokerApiException(
-                            "Breeze API error: " + response.body(),
-                            response.statusCode()
-                    );
-                }
-
-                return objectMapper.readTree(response.body());
+                log.error("Breeze request failed status={} endpoint={} body={}",
+                        e.getStatusCode().value(),
+                        normalizeEndpoint(endpoint),
+                        truncate(e.getResponseBodyAsString()));
+                throw new BrokerApiException("Breeze API error: " + e.getResponseBodyAsString(), e.getStatusCode().value());
             } catch (JacksonException e) {
                 throw new BrokerApiException("Failed to parse Breeze API response: " + e.getMessage(), e);
-            } catch (IOException e) {
+            } catch (RestClientException e) {
                 throw new BrokerApiException("Failed to communicate with Breeze API: " + e.getMessage(), e);
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                throw new BrokerApiException("Request interrupted", e);
             }
         }
     }
@@ -221,5 +193,27 @@ public class BreezeApiClient {
         } catch (JacksonException e) {
             throw new BrokerApiException("Failed to serialize request body", e);
         }
+    }
+
+    private String normalizeEndpoint(String endpoint) {
+        return endpoint.startsWith("/") ? endpoint : "/" + endpoint;
+    }
+
+    private String truncate(String body) {
+        return body.substring(0, Math.min(200, body.length()));
+    }
+
+    private void sleepBeforeRetry(int attempt) {
+        try {
+            Thread.sleep(RETRY_DELAY_MS * attempt);
+        } catch (InterruptedException ex) {
+            Thread.currentThread().interrupt();
+            throw new BrokerApiException("Request interrupted", ex);
+        }
+    }
+
+    @FunctionalInterface
+    private interface RequestExecutor {
+        JsonNode execute() throws InterruptedException;
     }
 }

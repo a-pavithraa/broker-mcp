@@ -4,6 +4,7 @@ import com.broker.model.AnalysisModels.*;
 import com.broker.reference.StockMetadataService;
 import org.junit.jupiter.api.Test;
 import org.springframework.core.io.DefaultResourceLoader;
+import org.springframework.web.client.RestClient;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.json.JsonMapper;
@@ -218,7 +219,11 @@ class BreezeGatewayServiceTest {
         private Map<String, String> lastPostBody = Map.of();
 
         private RecordingBreezeApiClient(ObjectMapper objectMapper) {
-            super(null, null, null, objectMapper, null);
+            super(new com.broker.config.BreezeConfig("https://example.test", null),
+                    new BreezeSessionManager(),
+                    new BreezeChecksumGenerator(),
+                    objectMapper,
+                    RestClient.builder());
         }
 
         @Override
@@ -239,7 +244,11 @@ class BreezeGatewayServiceTest {
         private final AtomicInteger fundsCalls = new AtomicInteger();
 
         private SlowFundsBreezeApiClient(ObjectMapper objectMapper, JsonNode fundsResponse) {
-            super(null, null, null, objectMapper, null);
+            super(new com.broker.config.BreezeConfig("https://example.test", null),
+                    new BreezeSessionManager(),
+                    new BreezeChecksumGenerator(),
+                    objectMapper,
+                    RestClient.builder());
             this.fundsResponse = fundsResponse;
         }
 
