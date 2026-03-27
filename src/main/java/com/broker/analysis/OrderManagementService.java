@@ -96,10 +96,12 @@ class OrderManagementService {
                 "gross_value", moneyValue(assessment.grossValue())
         ));
         result.put("charges", chargeBreakdown(assessment.previewResponse()));
-        result.put("net_amount", moneyValue("sell".equals(assessment.order().action())
+        boolean isSell = "sell".equals(assessment.order().action());
+        result.put("net_amount", moneyValue(isSell
                 ? assessment.grossValue().subtract(assessment.totalCharges())
                 : assessment.grossValue().add(assessment.totalCharges())));
-        if ("sell".equals(assessment.order().action())) {
+
+        if (isSell) {
             result.put("position_impact", Map.of(
                 "avg_buy_price", round2(assessment.averageBuyPrice()),
                     "realized_pnl", moneyValue(money(assessment.effectivePrice())
@@ -612,14 +614,18 @@ class OrderManagementService {
     }
 
     private BigDecimal money(Object value) {
-        if (value == null) {
-            return BigDecimal.ZERO;
-        }
-        if (value instanceof BigDecimal bigDecimal) {
-            return bigDecimal;
-        }
-        if (value instanceof Number number) {
-            return BigDecimal.valueOf(number.doubleValue());
+        switch (value) {
+            case null -> {
+                return BigDecimal.ZERO;
+            }
+            case BigDecimal bigDecimal -> {
+                return bigDecimal;
+            }
+            case Number number -> {
+                return BigDecimal.valueOf(number.doubleValue());
+            }
+            default -> {
+            }
         }
         try {
             return new BigDecimal(String.valueOf(value).replace(",", ""));

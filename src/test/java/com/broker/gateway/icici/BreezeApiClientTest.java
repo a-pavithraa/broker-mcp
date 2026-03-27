@@ -2,6 +2,8 @@ package com.broker.gateway.icici;
 
 import com.broker.config.BreezeConfig;
 import com.broker.exception.SessionNotInitializedException;
+import com.broker.exception.BrokerApiException;
+import com.github.tomakehurst.wiremock.http.Fault;
 import com.github.tomakehurst.wiremock.junit5.WireMockExtension;
 import com.github.tomakehurst.wiremock.stubbing.Scenario;
 import org.junit.jupiter.api.BeforeEach;
@@ -9,6 +11,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
 import org.springframework.web.client.RestClient;
 import tools.jackson.databind.json.JsonMapper;
+
+import java.time.Duration;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.*;
 import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig;
@@ -29,7 +33,7 @@ class BreezeApiClientTest {
 
     @BeforeEach
     void setUp() {
-        BreezeConfig config = new BreezeConfig(wireMock.baseUrl(), null);
+        BreezeConfig config = new BreezeConfig(wireMock.baseUrl(), null, null);
 
         sessionManager = new BreezeSessionManager();
         BreezeChecksumGenerator checksumGenerator = new BreezeChecksumGenerator();
@@ -80,6 +84,47 @@ class BreezeApiClientTest {
 
         assertTrue(client.get("/funds").path("Success").path("ok").asBoolean());
         wireMock.verify(2, anyRequestedFor(urlEqualTo("/funds")));
+    }
+
+    @Test
+    void get_shouldRetryTransientTransportFailures() {
+        sessionManager.setSession("api_key", "secret_key", "session_token", "ICICI_USER");
+
+        wireMock.stubFor(any(urlEqualTo("/funds"))
+                .inScenario("transport-retry")
+                .whenScenarioStateIs(Scenario.STARTED)
+                .willReturn(aResponse().withFault(Fault.CONNECTION_RESET_BY_PEER))
+                .willSetStateTo("second"));
+        wireMock.stubFor(any(urlEqualTo("/funds"))
+                .inScenario("transport-retry")
+                .whenScenarioStateIs("second")
+                .willReturn(okJson("""
+                        {"Success":{"ok":true}}
+                        """)));
+
+        assertTrue(client.get("/funds").path("Success").path("ok").asBoolean());
+        wireMock.verify(2, anyRequestedFor(urlEqualTo("/funds")));
+    }
+
+    @Test
+    void get_shouldRespectConfiguredRetryBudget() {
+        BreezeConfig config = new BreezeConfig(
+                wireMock.baseUrl(),
+                null,
+                new BreezeConfig.Retry(0, Duration.ofMillis(1), null));
+        sessionManager = new BreezeSessionManager();
+        BreezeChecksumGenerator checksumGenerator = new BreezeChecksumGenerator();
+        JsonMapper objectMapper = JsonMapper.builder().build();
+        client = new BreezeApiClient(config, sessionManager, checksumGenerator, objectMapper, RestClient.builder());
+        sessionManager.setSession("api_key", "secret_key", "session_token", "ICICI_USER");
+
+        wireMock.stubFor(any(urlEqualTo("/funds"))
+                .willReturn(aResponse().withStatus(503).withBody("{\"Error\":\"busy\"}")));
+
+        BrokerApiException exception = assertThrows(BrokerApiException.class, () -> client.get("/funds"));
+
+        assertEquals(503, exception.getStatusCode());
+        wireMock.verify(1, anyRequestedFor(urlEqualTo("/funds")));
     }
 
     @Test

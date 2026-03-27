@@ -1,6 +1,8 @@
 package com.broker.gateway.zerodha;
 
+import com.broker.config.ZerodhaConfig;
 import com.broker.exception.BrokerApiException;
+import com.github.tomakehurst.wiremock.http.Fault;
 import com.github.tomakehurst.wiremock.junit5.WireMockExtension;
 import com.github.tomakehurst.wiremock.stubbing.Scenario;
 import org.junit.jupiter.api.Test;
@@ -9,6 +11,7 @@ import org.springframework.web.client.RestClient;
 import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.json.JsonMapper;
 
+import java.time.Duration;
 import java.util.Map;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.*;
@@ -38,7 +41,11 @@ class ZerodhaApiClientTest {
 
         ZerodhaSessionManager sessionManager = new ZerodhaSessionManager("ZERODHA_USER");
         sessionManager.setSession("api_key", "access_token");
-        ZerodhaApiClient client = new ZerodhaApiClient(RestClient.builder(), objectMapper, sessionManager, wireMock.baseUrl());
+        ZerodhaApiClient client = new ZerodhaApiClient(
+                RestClient.builder(),
+                objectMapper,
+                sessionManager,
+                new ZerodhaConfig(wireMock.baseUrl(), "paid", null));
 
         assertTrue(client.get("/quote", Map.of("i", "NSE:INFY")).path("data").path("ok").asBoolean());
     }
@@ -61,7 +68,37 @@ class ZerodhaApiClientTest {
 
         ZerodhaSessionManager sessionManager = new ZerodhaSessionManager("ZERODHA_USER");
         sessionManager.setSession("api_key", "access_token");
-        ZerodhaApiClient client = new ZerodhaApiClient(RestClient.builder(), objectMapper, sessionManager, wireMock.baseUrl());
+        ZerodhaApiClient client = new ZerodhaApiClient(
+                RestClient.builder(),
+                objectMapper,
+                sessionManager,
+                new ZerodhaConfig(wireMock.baseUrl(), "paid", null));
+
+        assertTrue(client.get("/quote").path("data").path("ok").asBoolean());
+        wireMock.verify(2, getRequestedFor(urlPathEqualTo("/quote")));
+    }
+
+    @Test
+    void get_shouldRetryTransientTransportFailures() {
+        wireMock.stubFor(get(urlPathEqualTo("/quote"))
+                .inScenario("transport-retry")
+                .whenScenarioStateIs(Scenario.STARTED)
+                .willReturn(aResponse().withFault(Fault.CONNECTION_RESET_BY_PEER))
+                .willSetStateTo("second"));
+        wireMock.stubFor(get(urlPathEqualTo("/quote"))
+                .inScenario("transport-retry")
+                .whenScenarioStateIs("second")
+                .willReturn(okJson("""
+                        {"status":"success","data":{"ok":true}}
+                        """)));
+
+        ZerodhaSessionManager sessionManager = new ZerodhaSessionManager("ZERODHA_USER");
+        sessionManager.setSession("api_key", "access_token");
+        ZerodhaApiClient client = new ZerodhaApiClient(
+                RestClient.builder(),
+                objectMapper,
+                sessionManager,
+                new ZerodhaConfig(wireMock.baseUrl(), "paid", null));
 
         assertTrue(client.get("/quote").path("data").path("ok").asBoolean());
         wireMock.verify(2, getRequestedFor(urlPathEqualTo("/quote")));
@@ -76,12 +113,40 @@ class ZerodhaApiClientTest {
 
         ZerodhaSessionManager sessionManager = new ZerodhaSessionManager("ZERODHA_USER");
         sessionManager.setSession("api_key", "access_token");
-        ZerodhaApiClient client = new ZerodhaApiClient(RestClient.builder(), objectMapper, sessionManager, wireMock.baseUrl());
+        ZerodhaApiClient client = new ZerodhaApiClient(
+                RestClient.builder(),
+                objectMapper,
+                sessionManager,
+                new ZerodhaConfig(wireMock.baseUrl(), "paid", null));
 
         BrokerApiException exception = assertThrows(BrokerApiException.class, () -> client.get("/quote"));
 
         assertEquals(503, exception.getStatusCode());
         wireMock.verify(3, getRequestedFor(urlPathEqualTo("/quote")));
+    }
+
+    @Test
+    void get_shouldRespectConfiguredRetryBudget() {
+        wireMock.stubFor(get(urlPathEqualTo("/quote"))
+                .willReturn(aResponse()
+                        .withStatus(503)
+                        .withBody("{\"status\":\"error\",\"message\":\"still busy\"}")));
+
+        ZerodhaSessionManager sessionManager = new ZerodhaSessionManager("ZERODHA_USER");
+        sessionManager.setSession("api_key", "access_token");
+        ZerodhaApiClient client = new ZerodhaApiClient(
+                RestClient.builder(),
+                objectMapper,
+                sessionManager,
+                new ZerodhaConfig(
+                        wireMock.baseUrl(),
+                        "paid",
+                        new ZerodhaConfig.Retry(0, Duration.ofMillis(1), null)));
+
+        BrokerApiException exception = assertThrows(BrokerApiException.class, () -> client.get("/quote"));
+
+        assertEquals(503, exception.getStatusCode());
+        wireMock.verify(1, getRequestedFor(urlPathEqualTo("/quote")));
     }
 
     @Test

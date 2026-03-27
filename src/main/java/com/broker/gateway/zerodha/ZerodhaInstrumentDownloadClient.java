@@ -1,7 +1,8 @@
 package com.broker.gateway.zerodha;
 
+import com.broker.config.ZerodhaConfig;
 import com.broker.exception.BrokerApiException;
-import org.springframework.beans.factory.annotation.Value;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
@@ -26,10 +27,18 @@ class ZerodhaInstrumentDownloadClient implements ZerodhaInstrumentCache.CsvDownl
 
     ZerodhaInstrumentDownloadClient(
             RestClient.Builder restClientBuilder,
-            @Value("${zerodha.base-url:https://api.kite.trade}") String baseUrl,
+            String baseUrl,
+            ZerodhaSessionManager sessionManager) {
+        this(restClientBuilder, new ZerodhaConfig(baseUrl, "free", null), sessionManager);
+    }
+
+    @Autowired
+    ZerodhaInstrumentDownloadClient(
+            RestClient.Builder restClientBuilder,
+            ZerodhaConfig zerodhaConfig,
             ZerodhaSessionManager sessionManager) {
         this.restClient = restClientBuilder.clone()
-                .baseUrl(baseUrl)
+                .baseUrl(zerodhaConfig.baseUrl())
                 .build();
         this.sessionManager = sessionManager;
     }
@@ -43,7 +52,8 @@ class ZerodhaInstrumentDownloadClient implements ZerodhaInstrumentCache.CsvDownl
         try {
             byte[] body = restClient.method(HttpMethod.GET)
                     .uri("/instruments/{exchange}", exchange)
-                    .contentType(MediaType.APPLICATION_OCTET_STREAM)
+                    .accept(MediaType.APPLICATION_OCTET_STREAM, MediaType.TEXT_PLAIN)
+                    .header("Accept-Encoding", "gzip")
                     .header("X-Kite-Version", "3")
                     .header("Authorization", "token " + sessionManager.getApiKey() + ":" + sessionManager.getAccessToken())
                     .retrieve()

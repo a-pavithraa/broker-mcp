@@ -1,9 +1,13 @@
 package com.broker.gateway.zerodha;
 
+import com.broker.config.ZerodhaConfig;
 import com.broker.exception.BrokerApiException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.retry.RetryPolicy;
+import org.springframework.core.retry.RetryException;
+import org.springframework.core.retry.RetryTemplate;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
@@ -18,6 +22,7 @@ import tools.jackson.core.JacksonException;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 
+import java.io.IOException;
 import java.util.Map;
 import java.util.function.Consumer;
 
@@ -26,23 +31,32 @@ import java.util.function.Consumer;
 public class ZerodhaApiClient {
 
     private static final Logger log = LoggerFactory.getLogger(ZerodhaApiClient.class);
-    private static final int MAX_RETRIES = 2;
-    private static final long RETRY_DELAY_MS = 250;
 
     private final RestClient restClient;
     private final ObjectMapper objectMapper;
     private final ZerodhaSessionManager sessionManager;
+    private final RetryTemplate retryTemplate;
 
     public ZerodhaApiClient(
             RestClient.Builder restClientBuilder,
             ObjectMapper objectMapper,
             ZerodhaSessionManager sessionManager,
-            @Value("${zerodha.base-url:https://api.kite.trade}") String baseUrl) {
+            String baseUrl) {
+        this(restClientBuilder, objectMapper, sessionManager, new ZerodhaConfig(baseUrl, "free", null));
+    }
+
+    @Autowired
+    public ZerodhaApiClient(
+            RestClient.Builder restClientBuilder,
+            ObjectMapper objectMapper,
+            ZerodhaSessionManager sessionManager,
+            ZerodhaConfig zerodhaConfig) {
         this.restClient = restClientBuilder.clone()
-                .baseUrl(baseUrl)
+                .baseUrl(zerodhaConfig.baseUrl())
                 .build();
         this.objectMapper = objectMapper;
         this.sessionManager = sessionManager;
+        this.retryTemplate = new RetryTemplate(buildRetryPolicy(zerodhaConfig.retry()));
     }
 
     public JsonNode get(String path) {
@@ -67,9 +81,8 @@ public class ZerodhaApiClient {
             Consumer<UriBuilder> queryWriter,
             MediaType contentType,
             Object body) {
-        int attempt = 0;
-        while (true) {
-            try {
+        try {
+            return retryTemplate.execute(() -> {
                 RestClient.RequestBodySpec request = restClient.method(method)
                         .uri(uriBuilder -> {
                             UriBuilder builder = uriBuilder.path(normalizePath(path));
@@ -92,22 +105,32 @@ public class ZerodhaApiClient {
                     throw new BrokerApiException(parsed.path("message").asText("Zerodha API request failed"));
                 }
                 return parsed;
-            } catch (RestClientResponseException ex) {
-                if (ex.getStatusCode().value() == 503 && attempt < MAX_RETRIES) {
-                    attempt++;
-                    log.warn("Retrying Zerodha request after HTTP 503 for {} attempt {}/{}",
-                            normalizePath(path), attempt, MAX_RETRIES);
-                    sleepBeforeRetry(attempt);
-                    continue;
-                }
+            });
+        } catch (RetryException ex) {
+            Throwable last = ex.getLastException();
+            if (last instanceof RestClientResponseException responseException) {
                 throw new BrokerApiException(
-                        "Zerodha API error: HTTP " + ex.getStatusCode().value() + " " + ex.getResponseBodyAsString(),
-                        ex.getStatusCode().value());
-            } catch (RestClientException ex) {
-                throw new BrokerApiException("Zerodha API request failed", ex);
-            } catch (JacksonException ex) {
-                throw new BrokerApiException("Failed to parse Zerodha API response", ex);
+                        "Zerodha API error: HTTP " + responseException.getStatusCode().value() + " " + responseException.getResponseBodyAsString(),
+                        responseException.getStatusCode().value());
             }
+            if (last instanceof JacksonException jacksonException) {
+                throw new BrokerApiException("Failed to parse Zerodha API response", jacksonException);
+            }
+            if (last instanceof RestClientException restClientException) {
+                throw new BrokerApiException("Zerodha API request failed", restClientException);
+            }
+            if (last instanceof RuntimeException runtimeException) {
+                throw runtimeException;
+            }
+            throw new BrokerApiException("Zerodha retry failed", ex);
+        } catch (RestClientResponseException ex) {
+            throw new BrokerApiException(
+                    "Zerodha API error: HTTP " + ex.getStatusCode().value() + " " + ex.getResponseBodyAsString(),
+                    ex.getStatusCode().value());
+        } catch (RestClientException ex) {
+            throw new BrokerApiException("Zerodha API request failed", ex);
+        } catch (JacksonException ex) {
+            throw new BrokerApiException("Failed to parse Zerodha API response", ex);
         }
     }
 
@@ -147,12 +170,31 @@ public class ZerodhaApiClient {
         return path.startsWith("/") ? path : "/" + path;
     }
 
-    private void sleepBeforeRetry(int attempt) {
-        try {
-            Thread.sleep(RETRY_DELAY_MS * attempt);
-        } catch (InterruptedException ex) {
-            Thread.currentThread().interrupt();
-            throw new BrokerApiException("Zerodha API request interrupted", ex);
+    private RetryPolicy buildRetryPolicy(ZerodhaConfig.Retry retry) {
+        return RetryPolicy.builder()
+                .maxRetries(retry.maxRetries())
+                .delay(retry.delay())
+                .multiplier(retry.multiplier())
+                .predicate(this::shouldRetry)
+                .build();
+    }
+
+    private boolean shouldRetry(Throwable exception) {
+        if (exception instanceof RestClientResponseException responseException) {
+            return responseException.getStatusCode().value() == 503;
         }
+        return exception instanceof RestClientException restClientException
+                && shouldRetryTransportFailure(restClientException);
+    }
+
+    private boolean shouldRetryTransportFailure(RestClientException exception) {
+        Throwable current = exception;
+        while (current != null) {
+            if (current instanceof IOException) {
+                return true;
+            }
+            current = current.getCause();
+        }
+        return false;
     }
 }

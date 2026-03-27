@@ -2,15 +2,16 @@ package com.broker.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.http.client.JdkClientHttpRequestFactory;
 import org.springframework.web.client.RestClient;
 import tools.jackson.databind.SerializationFeature;
 import tools.jackson.databind.json.JsonMapper;
 
 import java.net.http.HttpClient;
-import java.time.Duration;
 
 @Configuration
+@EnableConfigurationProperties(BrokerHttpClientProperties.class)
 public class ClientConfig {
 
     @Bean
@@ -21,15 +22,19 @@ public class ClientConfig {
     }
 
     @Bean
-    RestClient.Builder restClientBuilder() {
+    RestClient.Builder restClientBuilder(BrokerHttpClientProperties properties) {
         HttpClient httpClient = HttpClient.newBuilder()
-                .connectTimeout(Duration.ofSeconds(30))
-                .version(HttpClient.Version.HTTP_1_1)
+                .connectTimeout(properties.connectTimeout())
                 .build();
+        if (properties.forceHttp1()) {
+            httpClient = HttpClient.newBuilder()
+                    .connectTimeout(properties.connectTimeout())
+                    .version(HttpClient.Version.HTTP_1_1)
+                    .build();
+        }
 
         JdkClientHttpRequestFactory requestFactory = new JdkClientHttpRequestFactory(httpClient);
-        requestFactory.setReadTimeout(Duration.ofSeconds(60));
-        requestFactory.enableCompression(true);
+        requestFactory.setReadTimeout(properties.readTimeout());
 
         return RestClient.builder().requestFactory(requestFactory);
     }

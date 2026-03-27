@@ -4,6 +4,9 @@ import com.broker.config.BreezeConfig;
 import com.broker.exception.BrokerApiException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.core.retry.RetryPolicy;
+import org.springframework.core.retry.RetryException;
+import org.springframework.core.retry.RetryTemplate;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -15,6 +18,7 @@ import tools.jackson.core.JacksonException;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import java.util.concurrent.locks.ReentrantLock;
@@ -28,8 +32,6 @@ public class BreezeApiClient {
     private static final String HEADER_SESSION_TOKEN = "X-SessionToken";
     private static final String HEADER_TIMESTAMP = "X-Timestamp";
     private static final String HEADER_CHECKSUM = "X-Checksum";
-    private static final int MAX_RETRIES = 3;
-    private static final long RETRY_DELAY_MS = 500;
     private static final long MIN_REQUEST_GAP_MS = 500;
 
     private final ReentrantLock requestLock = new ReentrantLock();
@@ -38,6 +40,7 @@ public class BreezeApiClient {
     private final BreezeChecksumGenerator checksumGenerator;
     private final ObjectMapper objectMapper;
     private final RestClient restClient;
+    private final RetryTemplate retryTemplate;
 
     public BreezeApiClient(
             BreezeConfig breezeConfig,
@@ -51,6 +54,7 @@ public class BreezeApiClient {
         this.restClient = restClientBuilder.clone()
                 .baseUrl(breezeConfig.baseUrl())
                 .build();
+        this.retryTemplate = new RetryTemplate(buildRetryPolicy(breezeConfig.retry()));
     }
 
     public JsonNode get(String endpoint) {
@@ -153,9 +157,8 @@ public class BreezeApiClient {
             MediaType contentType,
             String body,
             Map<String, String> headers) {
-        int attempt = 0;
-        while (true) {
-            try {
+        try {
+            return retryTemplate.execute(() -> {
                 RestClient.RequestBodySpec request = restClient.method(method)
                         .uri(normalizeEndpoint(endpoint))
                         .contentType(contentType);
@@ -166,24 +169,38 @@ public class BreezeApiClient {
 
                 String responseBody = request.retrieve().body(String.class);
                 return objectMapper.readTree(responseBody);
-            } catch (RestClientResponseException e) {
-                if (e.getStatusCode().value() == 503 && attempt < MAX_RETRIES) {
-                    attempt++;
-                    log.warn("Retrying Breeze request after HTTP 503 for {} attempt {}/{}",
-                            normalizeEndpoint(endpoint), attempt, MAX_RETRIES);
-                    sleepBeforeRetry(attempt);
-                    continue;
-                }
+            });
+        } catch (RetryException e) {
+            Throwable last = e.getLastException();
+            if (last instanceof RestClientResponseException responseException) {
                 log.error("Breeze request failed status={} endpoint={} body={}",
-                        e.getStatusCode().value(),
+                        responseException.getStatusCode().value(),
                         normalizeEndpoint(endpoint),
-                        truncate(e.getResponseBodyAsString()));
-                throw new BrokerApiException("Breeze API error: " + e.getResponseBodyAsString(), e.getStatusCode().value());
-            } catch (JacksonException e) {
-                throw new BrokerApiException("Failed to parse Breeze API response: " + e.getMessage(), e);
-            } catch (RestClientException e) {
-                throw new BrokerApiException("Failed to communicate with Breeze API: " + e.getMessage(), e);
+                        truncate(responseException.getResponseBodyAsString()));
+                throw new BrokerApiException(
+                        "Breeze API error: " + responseException.getResponseBodyAsString(),
+                        responseException.getStatusCode().value());
             }
+            if (last instanceof JacksonException jacksonException) {
+                throw new BrokerApiException("Failed to parse Breeze API response: " + jacksonException.getMessage(), jacksonException);
+            }
+            if (last instanceof RestClientException restClientException) {
+                throw new BrokerApiException("Failed to communicate with Breeze API: " + restClientException.getMessage(), restClientException);
+            }
+            if (last instanceof RuntimeException runtimeException) {
+                throw runtimeException;
+            }
+            throw new BrokerApiException("Breeze retry failed", e);
+        } catch (RestClientResponseException e) {
+            log.error("Breeze request failed status={} endpoint={} body={}",
+                    e.getStatusCode().value(),
+                    normalizeEndpoint(endpoint),
+                    truncate(e.getResponseBodyAsString()));
+            throw new BrokerApiException("Breeze API error: " + e.getResponseBodyAsString(), e.getStatusCode().value());
+        } catch (JacksonException e) {
+            throw new BrokerApiException("Failed to parse Breeze API response: " + e.getMessage(), e);
+        } catch (RestClientException e) {
+            throw new BrokerApiException("Failed to communicate with Breeze API: " + e.getMessage(), e);
         }
     }
 
@@ -203,13 +220,32 @@ public class BreezeApiClient {
         return body.substring(0, Math.min(200, body.length()));
     }
 
-    private void sleepBeforeRetry(int attempt) {
-        try {
-            Thread.sleep(RETRY_DELAY_MS * attempt);
-        } catch (InterruptedException ex) {
-            Thread.currentThread().interrupt();
-            throw new BrokerApiException("Request interrupted", ex);
+    private RetryPolicy buildRetryPolicy(BreezeConfig.Retry retry) {
+        return RetryPolicy.builder()
+                .maxRetries(retry.maxRetries())
+                .delay(retry.delay())
+                .multiplier(retry.multiplier())
+                .predicate(this::shouldRetry)
+                .build();
+    }
+
+    private boolean shouldRetry(Throwable exception) {
+        if (exception instanceof RestClientResponseException responseException) {
+            return responseException.getStatusCode().value() == 503;
         }
+        return exception instanceof RestClientException restClientException
+                && shouldRetryTransportFailure(restClientException);
+    }
+
+    private boolean shouldRetryTransportFailure(RestClientException exception) {
+        Throwable current = exception;
+        while (current != null) {
+            if (current instanceof IOException) {
+                return true;
+            }
+            current = current.getCause();
+        }
+        return false;
     }
 
     @FunctionalInterface

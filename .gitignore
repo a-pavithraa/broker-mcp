@@ -40,3 +40,4 @@ build/
 # ai agents
 .claude
 .codex
+/docs/

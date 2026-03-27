@@ -219,7 +219,7 @@ class BreezeGatewayServiceTest {
         private Map<String, String> lastPostBody = Map.of();
 
         private RecordingBreezeApiClient(ObjectMapper objectMapper) {
-            super(new com.broker.config.BreezeConfig("https://example.test", null),
+            super(new com.broker.config.BreezeConfig("https://example.test", null, null),
                     new BreezeSessionManager(),
                     new BreezeChecksumGenerator(),
                     objectMapper,
@@ -244,7 +244,7 @@ class BreezeGatewayServiceTest {
         private final AtomicInteger fundsCalls = new AtomicInteger();
 
         private SlowFundsBreezeApiClient(ObjectMapper objectMapper, JsonNode fundsResponse) {
-            super(new com.broker.config.BreezeConfig("https://example.test", null),
+            super(new com.broker.config.BreezeConfig("https://example.test", null, null),
                     new BreezeSessionManager(),
                     new BreezeChecksumGenerator(),
                     objectMapper,

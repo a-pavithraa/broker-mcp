@@ -19,7 +19,7 @@ class SessionWriteToolsTest {
     void setUp() {
         BreezeSessionManager sessionManager = new BreezeSessionManager();
         BreezeApiClient apiClient = new BreezeApiClient(
-                new BreezeConfig("https://example.test", null),
+                new BreezeConfig("https://example.test", null, null),
                 sessionManager,
                 new BreezeChecksumGenerator(),
                 JsonMapper.builder().build(),

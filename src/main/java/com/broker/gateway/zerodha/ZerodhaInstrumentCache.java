@@ -73,6 +73,9 @@ public class ZerodhaInstrumentCache implements ApplicationRunner {
             String mergedCsv = downloadAndMergeCsv();
             writeCache(mergedCsv, Instant.now(clock));
             loadFromCsv(mergedCsv);
+        } catch (InterruptedException ex) {
+            Thread.currentThread().interrupt();
+            log.warn("Zerodha instrument cache initialization interrupted: {}", ex.getMessage());
         } catch (Exception ex) {
             if (Files.exists(cacheFile)) {
                 log.warn("Unable to refresh Zerodha instrument cache, falling back to stale file: {}", ex.getMessage());

@@ -85,6 +85,24 @@ class ZerodhaInstrumentCacheTest {
     }
 
     @Test
+    void initialize_shouldPreserveInterruptStatusWhenDownloadIsInterrupted() {
+        ZerodhaInstrumentCache cache = new ZerodhaInstrumentCache(
+                tempDir,
+                fixedIndiaClock("2026-03-16T11:00:00+05:30"),
+                exchange -> {
+                    throw new InterruptedException("shutdown");
+                });
+
+        try {
+            cache.initialize();
+
+            assertTrue(Thread.currentThread().isInterrupted());
+        } finally {
+            Thread.interrupted();
+        }
+    }
+
+    @Test
     void resolveQuoteInstrument_shouldUseHardcodedIndexMappings() {
         ZerodhaInstrumentCache cache = new ZerodhaInstrumentCache(
                 tempDir,
